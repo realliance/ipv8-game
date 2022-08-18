@@ -32,6 +32,7 @@ pub struct DatabasePlugin;
 impl Plugin for DatabasePlugin {
   fn build(&self, app: &mut App) {
     let pool = build_db_pool();
+    info!("Database Pool built with {} connections", pool.state().connections);
 
     app
       .insert_resource(DatabasePool(pool));
