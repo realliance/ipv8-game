@@ -12,6 +12,7 @@ dotenv = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 tracing = "0.1"
 tracing-subscriber = "0.3"
+ipv8-proto-rust = { git = "https://github.com/realliance/ipv8-proto.git", rev = "6d8f43433f1b1f5dfecfd2612b0284a4bf34f602" }
 
 [profile.dev]
 opt-level = 1

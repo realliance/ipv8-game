@@ -908,6 +908,21 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c1db59621ec70f09c5e9b597b220c7a2b43611f4710dc03ceb8748637775692c"
 
 [[package]]
+name = "capnp"
+version = "0.14.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "82efa3b0ab5e7e32b786334b052560ec0094135f906975d7481651b9ecf31a6a"
+
+[[package]]
+name = "capnpc"
+version = "0.14.9"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bdc9f1dc84666d4ff007b1a16c8f97db80764a624625979be05d869bcff43aaa"
+dependencies = [
+ "capnp",
+]
+
+[[package]]
 name = "cc"
 version = "1.0.73"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1789,9 +1804,19 @@ dependencies = [
  "bevy",
  "diesel",
  "dotenv",
+ "ipv8-proto-rust",
  "serde",
  "tracing",
  "tracing-subscriber",
+]
+
+[[package]]
+name = "ipv8-proto-rust"
+version = "0.1.0"
+source = "git+https://github.com/realliance/ipv8-proto.git?rev=6d8f43433f1b1f5dfecfd2612b0284a4bf34f602#6d8f43433f1b1f5dfecfd2612b0284a4bf34f602"
+dependencies = [
+ "capnp",
+ "capnpc",
 ]
 
 [[package]]
