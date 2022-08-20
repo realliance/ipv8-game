@@ -47,13 +47,16 @@ impl WorldBuilder {
 
     info!("Inserting a new world.");
 
-    if let Ok(new_world) = insert_into(worlds).values(&self).get_results::<World>(conn) {
-      return new_world
-        .first()
-        .expect("Expected to insert a world into the database but didn't")
-        .clone();
-    } else {
-      panic!("Could not find current world nor insert new world. Game cannot run without a database-backed world.")
+    match  insert_into(worlds).values(&self).get_results::<World>(conn) {
+      Ok(new_world) => {
+        new_world
+          .first()
+          .expect("Expected to insert a world into the database but didn't")
+          .clone()
+      },
+      Err(err) => {
+        panic!("Could not find current world nor insert new world. Game cannot run without a database-backed world. {}", err);
+      }
     }
   }
 }

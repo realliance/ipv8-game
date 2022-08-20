@@ -1922,7 +1922,7 @@ dependencies = [
 [[package]]
 name = "ipv8-proto-rust"
 version = "0.1.0"
-source = "git+https://github.com/realliance/ipv8-proto.git?rev=6d8f43433f1b1f5dfecfd2612b0284a4bf34f602#6d8f43433f1b1f5dfecfd2612b0284a4bf34f602"
+source = "git+https://github.com/realliance/ipv8-proto.git?rev=137aa4dea8dd810714dc0e0095b4fd8d0d8e930e#137aa4dea8dd810714dc0e0095b4fd8d0d8e930e"
 dependencies = [
  "capnp",
  "capnpc",
