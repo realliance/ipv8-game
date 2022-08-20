@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 bevy = "0.8"
-diesel = { version = "1.4", features = ["postgres", "r2d2", "chrono"] }
+diesel = { version = "1.4", features = ["postgres", "uuidv07", "r2d2", "chrono"] }
 dotenv = "0.15"
 serde = { version = "1.0", features = ["derive"] }
 tracing = "0.1"
@@ -16,6 +16,8 @@ ipv8-proto-rust = { git = "https://github.com/realliance/ipv8-proto.git", rev = 
 capnp-rpc = "0.14"
 chrono = "0.4"
 rand = "0.8"
+uuid = { version = "0.8", features = ["v4"] }
+hashbrown = "0.12"
 
 [profile.dev]
 opt-level = 1

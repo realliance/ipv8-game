@@ -570,7 +570,7 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
- "uuid",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -647,7 +647,7 @@ dependencies = [
  "ron",
  "serde",
  "thiserror",
- "uuid",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -779,7 +779,7 @@ dependencies = [
  "hashbrown",
  "instant",
  "tracing",
- "uuid",
+ "uuid 1.1.2",
 ]
 
 [[package]]
@@ -1328,6 +1328,7 @@ dependencies = [
  "diesel_derives",
  "pq-sys",
  "r2d2",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -1593,7 +1594,7 @@ dependencies = [
  "fnv",
  "gilrs-core",
  "log",
- "uuid",
+ "uuid 1.1.2",
  "vec_map",
 ]
 
@@ -1611,7 +1612,7 @@ dependencies = [
  "log",
  "nix 0.24.2",
  "rusty-xinput",
- "uuid",
+ "uuid 1.1.2",
  "vec_map",
  "wasm-bindgen",
  "web-sys",
@@ -1909,11 +1910,13 @@ dependencies = [
  "chrono",
  "diesel",
  "dotenv",
+ "hashbrown",
  "ipv8-proto-rust",
  "rand",
  "serde",
  "tracing",
  "tracing-subscriber",
+ "uuid 0.8.2",
 ]
 
 [[package]]
@@ -3102,6 +3105,15 @@ name = "unicode-xid"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "957e51f3646910546462e67d5f7599b9e4fb8acdd304b087a6494730f9eebf04"
+
+[[package]]
+name = "uuid"
+version = "0.8.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bc5cf98d8186244414c848017f0e2676b3fcb46807f6668a97dfe67359a3c4b7"
+dependencies = [
+ "getrandom",
+]
 
 [[package]]
 name = "uuid"
