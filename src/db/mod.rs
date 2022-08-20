@@ -1,7 +1,14 @@
 use std::env;
+use std::ops::Deref;
 
 use bevy::prelude::*;
-use diesel::{r2d2::{Pool, ConnectionManager}, PgConnection};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
+
+pub mod models;
+mod schema;
+
+pub use schema::*;
 
 #[inline(always)]
 fn get_db_url() -> String {
@@ -25,7 +32,15 @@ fn build_db_pool() -> Pool<ConnectionManager<PgConnection>> {
   Pool::new(ConnectionManager::new(get_db_url())).unwrap()
 }
 
-pub struct DatabasePool(pub Pool<ConnectionManager<PgConnection>>);
+pub struct DatabasePool(Pool<ConnectionManager<PgConnection>>);
+
+impl Deref for DatabasePool {
+  type Target = Pool<ConnectionManager<PgConnection>>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
 
 pub struct DatabasePlugin;
 
@@ -34,7 +49,6 @@ impl Plugin for DatabasePlugin {
     let pool = build_db_pool();
     info!("Database Pool built with {} connections", pool.state().connections);
 
-    app
-      .insert_resource(DatabasePool(pool));
+    app.insert_resource(DatabasePool(pool));
   }
 }

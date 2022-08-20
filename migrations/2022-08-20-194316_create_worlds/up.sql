@@ -1,0 +1,5 @@
+CREATE TABLE worlds (
+  id SERIAL PRIMARY KEY,
+  origin_time TIMESTAMP NOT NULL,
+  seed BIGSERIAL NOT NULL
+)
