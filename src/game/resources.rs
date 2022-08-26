@@ -1,4 +1,11 @@
+use std::slice::Iter;
+
+use bevy::prelude::*;
 use serde::Deserialize;
+
+use crate::game::stages::GameStage;
+
+use super::{user::{UserOwned, UserResourceTable}, tick::Ticked};
 
 /// A Resource in the game.
 #[derive(Deserialize, Clone, Copy)]
@@ -11,8 +18,13 @@ pub enum Resource {
 
 impl Resource {
   /// A shorthand function to easily create a [ResourceDelta]
-  pub fn d(self, value: i32) -> ResourceDelta {
+  pub fn d(self, value: i64) -> ResourceDelta {
     ResourceDelta { resource: self, value }
+  }
+
+  /// A shorthand function to generate a negative [ResourceDelta]
+  pub fn cost(self, value: u16) -> ResourceDelta {
+    ResourceDelta { resource: self, value: -(value as i32) as i64 }
   }
 }
 
@@ -21,5 +33,61 @@ impl Resource {
 #[derive(Deserialize, Clone, Copy)]
 pub struct ResourceDelta {
   pub resource: Resource,
-  pub value: i32,
+  pub value: i64,
+}
+
+/// Represents a resource cost that occures when the entity is [Ticked]. 
+#[derive(Component)]
+pub struct TickedResourceCost {
+  costs: Vec<ResourceDelta>,
+  paid: bool
+}
+
+impl TickedResourceCost {
+  pub fn new(costs: Vec<ResourceDelta>) -> Self {
+    Self {
+      paid: false,
+      costs
+    }
+  }
+
+  /// Begins an iterator to verify if costs can be paid, and pay them if so.
+  pub fn iter_pay_costs(&mut self) -> Iter<'_, ResourceDelta> {
+    self.paid = false;
+    self.costs.iter()
+  }
+
+  /// Confirms costs were paid for the pay tick.
+  pub fn pay_costs(&mut self) {
+    self.paid = true;
+  }
+
+  /// Were costs paid?
+  pub fn paid(&self) -> bool {
+    self.paid
+  }
+}
+
+fn pay_ticked_resource_costs(mut res: ResMut<UserResourceTable>, mut query: Query<(&Ticked, &UserOwned, &mut TickedResourceCost)>) {
+  query.for_each_mut(|(ticked, user, mut cost)| {
+    if ticked.fired() {
+      if let Some(user) = res.get_mut(&user.0) {
+        if cost.iter_pay_costs().map(|x| user.pay_resources(x)).fold(true, |acc, i| acc && i) {
+          cost.pay_costs();
+        }
+      } else {
+        warn!("Resource Cost attempted to be applied to User {}, which didn't exist.", user.0);
+      }
+    }
+  });
+}
+
+pub struct ResourcePlugin;
+
+impl Plugin for ResourcePlugin {
+  fn build(&self, app: &mut App) {
+    info!("Loading Resource System...");
+    app
+      .add_system_to_stage(GameStage::OnTicked, pay_ticked_resource_costs);
+  }
 }

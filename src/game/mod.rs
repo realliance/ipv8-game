@@ -7,12 +7,12 @@ use self::stages::StagePlugin;
 use self::tick::TickPlugin;
 use self::user::UserPlugin;
 
-mod building;
-mod resources;
-mod user;
-mod world;
-mod stages;
-mod tick;
+pub mod building;
+pub mod resources;
+pub mod user;
+pub mod world;
+pub mod stages;
+pub mod tick;
 
 pub struct GamePlugins;
 

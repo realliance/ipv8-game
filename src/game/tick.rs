@@ -5,7 +5,6 @@ use crate::game::stages::GameStage;
 /// A component that is ticked every game step. use `::fired(&self)` to check whether
 /// the tick has fired and work should be done. When querying for [Ticked] use a label
 /// component alongside to filter better.
-/// If something needs to occur every tick. Consider adding it to stage [GameStage::OnTicked] and do no tick checking.
 #[derive(Component)]
 pub struct Ticked {
   counter: u16,
@@ -22,8 +21,20 @@ impl Ticked {
     }
   }
 
+  pub fn every_tick() -> Self {
+    Self {
+      counter: 0,
+      count_to: 0,
+      fired: true,
+    }
+  }
+
   /// Increments the tick counter.
   pub fn inc(&mut self) {
+    if self.count_to == 0 {
+      return;
+    }
+
     self.fired = false;
     self.counter += 1;
     if self.counter >= self.count_to {

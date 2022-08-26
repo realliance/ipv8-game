@@ -3,7 +3,7 @@ use hashbrown::HashMap;
 use tracing::warn;
 use uuid::Uuid;
 
-use crate::db::schema::users;
+use crate::{db::schema::users, game::resources::{ResourceDelta, Resource}};
 
 #[derive(Queryable, Identifiable, Insertable, Clone, Debug)]
 #[table_name = "users"]
@@ -68,5 +68,23 @@ impl User {
       .load::<Self>(conn)
       .expect("Failed to get all users, connection dead?");
     all_users.into_iter().map(|u| (u.id.clone(), u)).collect()
+  }
+
+  pub fn pay_resources(&mut self, delta: &ResourceDelta) -> bool {
+    macro_rules! resource_cost {
+      ($access:expr) => {
+        if $access >= delta.value.abs() {
+          $access -= delta.value;
+          true
+        } else {
+          false
+        }
+      };
+    }
+
+    match delta.resource {
+      Resource::Watt => todo!(),
+      Resource::Credit => resource_cost!(self.credits),
+    }
   }
 }

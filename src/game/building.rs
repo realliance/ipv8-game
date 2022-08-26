@@ -5,7 +5,7 @@ use hashbrown::HashMap;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use super::resources::{Resource, ResourceDelta};
+use super::resources::ResourceDelta;
 
 lazy_static::lazy_static! {
   pub static ref BUILDINGS: Vec<BuildingDefinition> = toml::from_str::<BuildingDefinitionFile>(&include_str!("../../buildings.toml")).unwrap().buildings;

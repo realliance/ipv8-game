@@ -1,4 +1,4 @@
-use std::ops::Deref;
+use std::ops::{Deref, DerefMut};
 
 use bevy::prelude::*;
 use hashbrown::HashMap;
@@ -7,13 +7,24 @@ use uuid::Uuid;
 use crate::db::models::User;
 use crate::db::DatabasePool;
 
+#[derive(Clone)]
 pub struct UserResourceTable(HashMap<Uuid, User>);
+
+/// Used to represent a component that is owned by a user, for things such as paying recurring costs.
+#[derive(Component)]
+pub struct UserOwned(pub Uuid);
 
 impl Deref for UserResourceTable {
   type Target = HashMap<Uuid, User>;
 
   fn deref(&self) -> &Self::Target {
     &self.0
+  }
+}
+
+impl DerefMut for UserResourceTable {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
   }
 }
 
