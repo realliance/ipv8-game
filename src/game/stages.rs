@@ -8,6 +8,16 @@ pub enum GameStage {
   Cleanup,
 }
 
+#[cfg(test)]
+fn get_system_stage() -> SystemStage {
+  SystemStage::single_threaded()
+}
+
+#[cfg(not(test))]
+fn get_system_stage() -> SystemStage {
+  SystemStage::parallel().with_run_criteria(FixedTimestep::step(1.0))
+}
+
 pub struct StagePlugin;
 
 impl Plugin for StagePlugin {
@@ -16,23 +26,23 @@ impl Plugin for StagePlugin {
     app
       .add_stage_after(
         CoreStage::Update, 
-        GameStage::Start, 
-        SystemStage::parallel().with_run_criteria(FixedTimestep::step(1.0))
+        GameStage::Start,
+        get_system_stage()
       )
       .add_stage_after(
         GameStage::Start, 
         GameStage::OnTicked, 
-        SystemStage::parallel().with_run_criteria(FixedTimestep::step(1.0))
+        get_system_stage()
       )
       .add_stage_after(
         GameStage::OnTicked, 
         GameStage::OnResourcesPaid, 
-        SystemStage::parallel().with_run_criteria(FixedTimestep::step(1.0))
+        get_system_stage()
       )
       .add_stage_after(
         GameStage::OnResourcesPaid, 
         GameStage::Cleanup, 
-        SystemStage::parallel().with_run_criteria(FixedTimestep::step(1.0))
+        get_system_stage()
       );
   }
 }

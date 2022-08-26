@@ -23,8 +23,8 @@ impl Resource {
   }
 
   /// A shorthand function to generate a negative [ResourceDelta]
-  pub fn cost(self, value: u16) -> ResourceDelta {
-    ResourceDelta { resource: self, value: -(value as i32) as i64 }
+  pub fn cost(self, value: u32) -> ResourceDelta {
+    ResourceDelta { resource: self, value: -1 * (value as i64) }
   }
 }
 
@@ -89,5 +89,70 @@ impl Plugin for ResourcePlugin {
     info!("Loading Resource System...");
     app
       .add_system_to_stage(GameStage::OnTicked, pay_ticked_resource_costs);
+  }
+}
+
+#[cfg(test)]
+mod tests {
+use bevy::prelude::*;
+use hashbrown::HashMap;
+use uuid::Uuid;
+
+use crate::{game::{stages::StagePlugin, tick::{TickPlugin, Ticked}, user::{UserResourceTable, UserOwned}}, db::models::User};
+
+use super::{ResourcePlugin, TickedResourceCost, Resource};
+
+  #[test]
+  fn test_resource_cost() {
+    // Build App
+    let mut app = App::new();
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugin(StagePlugin)
+      .add_plugin(TickPlugin)
+      .add_plugin(ResourcePlugin);
+
+    let id = Uuid::new_v4();
+    let user = User {
+      id,
+      credits: 14,
+    };
+
+    // Insert a User with Data
+    app.world.insert_resource(UserResourceTable::new(HashMap::from([(id, user)])));
+
+    // Produce an entity with a ticked cost.
+    let building = app.world.spawn().insert_bundle((
+      Ticked::every_tick(),
+      UserOwned(id),
+      TickedResourceCost::new(vec![Resource::Credit.cost(5)])
+    )).id();
+
+    // Pay Cost #1
+    app.update();
+
+    let cost: &TickedResourceCost = app.world.entity(building).get().unwrap();
+    assert!(cost.paid());
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 9);
+
+    // Pay Cost #2
+    app.update();
+
+    let cost: &TickedResourceCost = app.world.entity(building).get().unwrap();
+    assert!(cost.paid());
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 4);
+
+    // Pay Cost #3, cannot pay
+    app.update();
+
+    let cost: &TickedResourceCost = app.world.entity(building).get().unwrap();
+    assert!(!cost.paid());
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 4);
   }
 }

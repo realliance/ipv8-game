@@ -10,9 +10,11 @@ use crate::db::DatabasePool;
 #[derive(Clone)]
 pub struct UserResourceTable(HashMap<Uuid, User>);
 
-/// Used to represent a component that is owned by a user, for things such as paying recurring costs.
-#[derive(Component)]
-pub struct UserOwned(pub Uuid);
+impl UserResourceTable {
+  pub fn new(users: HashMap<Uuid, User>) -> Self {
+    Self(users)
+  }
+}
 
 impl Deref for UserResourceTable {
   type Target = HashMap<Uuid, User>;
@@ -27,6 +29,10 @@ impl DerefMut for UserResourceTable {
     &mut self.0
   }
 }
+
+/// Used to represent a component that is owned by a user, for things such as paying recurring costs.
+#[derive(Component)]
+pub struct UserOwned(pub Uuid);
 
 pub struct UserPlugin;
 

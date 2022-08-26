@@ -7,6 +7,9 @@ use bevy::prelude::*;
 pub mod db;
 pub mod game;
 
+#[cfg(tests)]
+mod tests;
+
 fn main() {
   dotenv::dotenv().ok();
 

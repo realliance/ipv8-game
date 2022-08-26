@@ -74,7 +74,7 @@ impl User {
     macro_rules! resource_cost {
       ($access:expr) => {
         if $access >= delta.value.abs() {
-          $access -= delta.value;
+          $access += delta.value;
           true
         } else {
           false
