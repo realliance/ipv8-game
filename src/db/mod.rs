@@ -1,3 +1,5 @@
+//! Database Schema and Associated Models.
+
 use std::env;
 use std::ops::Deref;
 

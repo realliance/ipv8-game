@@ -1,3 +1,5 @@
+//! Game Login and Systems.
+
 use bevy::app::PluginGroupBuilder;
 use bevy::prelude::*;
 use world::WorldPlugin;
