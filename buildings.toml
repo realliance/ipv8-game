@@ -8,23 +8,9 @@ priority = 0
 on_water = false
 on_mineral = true
 
-[[buildings.actions]]
-name = "Turn Crank"
-cooldown = 1
+[[buildings.ticked]]
+every_n_ticks = 1
 
-[[buildings.actions.products]]
-resource = "Watt"
-value = 1
-
-[[buildings.actions]]
-name = "Print Credit"
-cooldown = 1
-
-[[buildings.actions.products]]
+[[buildings.ticked.products]]
 resource = "Credit"
 value = 1
-
-[[buildings.actions.costs]]
-resource = "Watt"
-value = -1
-
