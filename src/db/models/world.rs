@@ -6,6 +6,7 @@ use tracing::info;
 use crate::db::schema::worlds;
 
 #[derive(Queryable, Identifiable, Clone, Debug)]
+#[diesel(table_name = worlds)]
 pub struct World {
   pub id: i32,
   pub origin_time: NaiveDateTime,
@@ -20,7 +21,7 @@ impl World {
     }
   }
 
-  pub fn from_db(conn: &PgConnection) -> Option<World> {
+  pub fn from_db(conn: &mut PgConnection) -> Option<World> {
     use crate::db::schema::worlds::dsl::*;
 
     worlds.find(0).first::<World>(conn).ok()
@@ -35,7 +36,7 @@ pub struct WorldBuilder {
 }
 
 impl WorldBuilder {
-  pub fn save(self, conn: &PgConnection) -> World {
+  pub fn save(self, conn: &mut PgConnection) -> World {
     use crate::db::schema::worlds::dsl::*;
 
     if let Ok(found_world) = worlds.first::<World>(conn) {

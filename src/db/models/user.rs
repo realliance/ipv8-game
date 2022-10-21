@@ -1,12 +1,12 @@
-use diesel::{insert_into, ExpressionMethods, PgConnection, QueryDsl, RunQueryDsl};
+use diesel::{insert_into, ExpressionMethods, QueryDsl, RunQueryDsl};
 use hashbrown::HashMap;
 use tracing::warn;
 use uuid::Uuid;
 
-use crate::{db::schema::users, game::resources::{ResourceDelta, Resource}};
+use crate::{db::{schema::users, PooledPgConnection}, game::resources::{ResourceDelta, Resource}};
 
 #[derive(Queryable, Identifiable, Insertable, Clone, Debug)]
-#[table_name = "users"]
+#[diesel(table_name = users)]
 pub struct User {
   pub id: Uuid,
   pub credits: i64,
@@ -22,7 +22,7 @@ impl Default for User {
 }
 
 impl User {
-  pub fn new(conn: &PgConnection, user_id: Uuid) -> Self {
+  pub fn new(conn: &mut PooledPgConnection, user_id: Uuid) -> Self {
     use crate::db::schema::users::dsl::*;
 
     if let Ok(found_user) = users.find(user_id).first::<User>(conn) {
@@ -39,7 +39,7 @@ impl User {
     }
   }
 
-  pub fn save(&self, conn: &PgConnection) -> Result<(), diesel::result::Error> {
+  pub fn save(&self, conn: &mut PooledPgConnection) -> Result<(), diesel::result::Error> {
     use crate::db::schema::users::dsl::*;
 
     if let Ok(found_user) = users.find(self.id).first::<User>(conn) {
@@ -61,7 +61,7 @@ impl User {
     }
   }
 
-  pub fn get_all_users(conn: &PgConnection) -> HashMap<Uuid, Self> {
+  pub fn get_all_users(conn: &mut PooledPgConnection) -> HashMap<Uuid, Self> {
     use crate::db::schema::users::dsl::*;
 
     let all_users = users

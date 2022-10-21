@@ -1,4 +1,7 @@
-use bevy::{prelude::*, time::FixedTimestep};
+use bevy::prelude::*;
+
+#[cfg(not(test))]
+use bevy::time::FixedTimestep;
 
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum GameStage {
