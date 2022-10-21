@@ -85,6 +85,7 @@ use super::{TickPlugin, Ticked};
     // Build ticking entity
     let ent = app.world.spawn().insert(Ticked::new(2)).id();
 
+    // Tick through the world, observing the entity firing on every other tick.
     for i in 1..100 {
       app.update();
       if i % 2 == 0 {
