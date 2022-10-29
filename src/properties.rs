@@ -9,7 +9,7 @@ pub struct GameProperties {
   /// RPC port the server binds to, default is 1337
   pub rpc_port: u32,
   /// Tick increment per frame, default is 1
-  pub tick_speed: u8,
+  pub tick_speed: u32,
 }
 
 impl Default for GameProperties {
@@ -48,9 +48,9 @@ impl GameProperties {
   }
 }
 
-pub struct PropertiesPluign;
+pub struct PropertiesPlugin;
 
-impl Plugin for PropertiesPluign {
+impl Plugin for PropertiesPlugin {
   fn build(&self, app: &mut App) {
     let config = GameProperties::from_file().map_err(|err| match err {
       GamePropertiesError::FileError(err) => format!("A file error occured while loading properties.toml: {}", err),

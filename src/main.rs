@@ -29,7 +29,7 @@ fn main() {
     .add_plugins(MinimalPlugins)
     .add_system(bevy::window::close_on_esc)
     .add_plugin(LogPlugin)
-    .add_plugin(properties::PropertiesPluign)
+    .add_plugin(properties::PropertiesPlugin)
     .add_plugin(db::DatabasePlugin)
     .add_plugins(game::GamePlugins)
     .run();

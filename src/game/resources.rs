@@ -70,7 +70,7 @@ impl TickedResourceCost {
 
 fn pay_ticked_resource_costs(mut res: ResMut<UserResourceTable>, mut query: Query<(&Ticked, &UserOwned, &mut TickedResourceCost)>) {
   query.for_each_mut(|(ticked, user, mut cost)| {
-    if ticked.fired() {
+    ticked.fire(|| {
       if let Some(user) = res.get_mut(&user.0) {
         if cost.iter_pay_costs().map(|x| user.pay_resources(x)).fold(true, |acc, i| acc && i) {
           cost.pay_costs();
@@ -78,7 +78,7 @@ fn pay_ticked_resource_costs(mut res: ResMut<UserResourceTable>, mut query: Quer
       } else {
         warn!("Resource Cost attempted to be applied to User {}, which didn't exist.", user.0);
       }
-    }
+    });
   });
 }
 
@@ -98,7 +98,7 @@ use bevy::prelude::*;
 use hashbrown::HashMap;
 use uuid::Uuid;
 
-use crate::{game::{stages::StagePlugin, tick::{TickPlugin, Ticked}, user::{UserResourceTable, UserOwned}}, db::models::User};
+use crate::{game::{stages::StagePlugin, tick::{TickPlugin, Ticked}, user::{UserResourceTable, UserOwned}}, db::models::User, properties::GameProperties};
 
 use super::{ResourcePlugin, TickedResourceCost, Resource};
 
@@ -110,7 +110,8 @@ use super::{ResourcePlugin, TickedResourceCost, Resource};
       .add_plugins(MinimalPlugins)
       .add_plugin(StagePlugin)
       .add_plugin(TickPlugin)
-      .add_plugin(ResourcePlugin);
+      .add_plugin(ResourcePlugin)
+      .init_resource::<GameProperties>();
 
     let id = Uuid::new_v4();
     let user = User {

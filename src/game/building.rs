@@ -27,7 +27,7 @@ pub struct BuildingPlacementFlags {
 
 #[derive(Deserialize, Clone)]
 pub struct BuildingTickedAction {
-  every_n_ticks: u16,
+  every_n_ticks: u32,
   products: Option<Vec<ResourceDelta>>,
   costs: Option<Vec<ResourceDelta>>,
 }
