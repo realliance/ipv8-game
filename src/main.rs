@@ -19,15 +19,17 @@ mod tests;
 fn main() {
   dotenv::dotenv().ok();
 
-  let args = Args::parse();
+  let mut app: &mut App = &mut App::new();
+  app = app
+    .add_plugin(LogPlugin);
 
+  let args = Args::parse();
   if process_command(args.command) {
     return;
   }
 
-  App::new()
+  app
     .add_plugins(MinimalPlugins)
-    .add_plugin(LogPlugin)
     .add_plugin(properties::PropertiesPlugin)
     .add_plugin(db::DatabasePlugin)
     .add_plugins(game::GamePlugins)

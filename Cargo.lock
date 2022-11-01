@@ -1967,6 +1967,7 @@ dependencies = [
  "clap",
  "diesel",
  "dotenv",
+ "glob",
  "hashbrown",
  "ipv8-proto-rust",
  "lazy_static",

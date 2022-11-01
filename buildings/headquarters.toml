@@ -14,3 +14,15 @@ every_n_ticks = 1
 [[buildings.ticked.products]]
 resource = "Credit"
 value = 1
+
+[[buildings.actions]]
+name = "Increase Cash Flow"
+cooldown = 2
+
+[[buildings.actions.costs]]
+resource = "Credit"
+value = 1
+
+[[buildings.actions.products]]
+resource = "Credit"
+value = 2

@@ -87,4 +87,11 @@ impl User {
       Resource::Credit => resource_cost!(self.credits),
     }
   }
+
+  pub fn give_resources(&mut self, delta: &ResourceDelta) {
+    match delta.resource {
+      Resource::Watt => todo!(),
+      Resource::Credit => self.credits += delta.value,
+    }
+  }
 }
