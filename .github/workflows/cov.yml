@@ -1,0 +1,42 @@
+name: Publish Code Coverage
+
+on:
+  push:
+    branches: [ main ]
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -Cinstrument-coverage -Zshare-generics=y
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install required packages
+      run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libxcb-xfixes0-dev libxcb-shape0-dev cmake mingw-w64
+    - name: Install latest nightly
+      uses: actions-rs/toolchain@v1
+      with:
+        toolchain: nightly
+        override: true
+        default: true
+        components: llvm-tools-preview
+    - name: Setup Cache
+      uses: Swatinem/rust-cache@v1
+    - name: Download grcov
+      run: curl -L https://github.com/mozilla/grcov/releases/download/v0.8.6/grcov-v0.8.6-x86_64-unknown-linux-gnu.tar.gz | tar zxf -
+    - name: Run tests
+      run: LLVM_PROFILE_FILE="ipv8-game-%p-%m.profraw" cargo test
+    - name: Generate report file
+      run: ./grcov . --binary-path ./target/debug/ -s . -t lcov --branch --ignore-not-existing --ignore "/*" -o lcov.info
+    - name: Publish to Codecov
+      uses: codecov/codecov-action@v2
+      with:
+        files: ./lcov.info
+        flags: unittests
+        name: github-actions-publish
+        fail_ci_if_error: true
+        verbose: true
