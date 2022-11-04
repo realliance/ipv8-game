@@ -1,6 +1,8 @@
 # IPv8
 *Game Service*
 
+[![codecov](https://codecov.io/github/realliance/ipv8-game/branch/main/graph/badge.svg?token=N0NY2XR28V)](https://codecov.io/github/realliance/ipv8-game)
+
 ## Getting Started
 
 ```
