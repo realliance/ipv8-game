@@ -1,4 +1,3 @@
-#![feature(path_try_exists)]
 
 #[macro_use]
 extern crate diesel;

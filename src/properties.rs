@@ -1,4 +1,4 @@
-use std::fs;
+use std::{fs, path::Path};
 use bevy::prelude::*;
 use serde::{Serialize, Deserialize};
 
@@ -37,8 +37,7 @@ impl GameProperties {
   }
 
   pub fn generate_default_config() -> Result<Self, GamePropertiesError> {
-    let exists = fs::try_exists(Self::LOCATION).map_err(GamePropertiesError::FileError)?;
-    if exists {
+    if Path::new(Self::LOCATION).exists() {
       Err(GamePropertiesError::AlreadyExists)
     } else {
       let config = GameProperties::default();
