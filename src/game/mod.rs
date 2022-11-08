@@ -10,6 +10,7 @@ use self::stages::StagePlugin;
 use self::tick::TickPlugin;
 use self::user::UserPlugin;
 
+pub mod action;
 pub mod building;
 pub mod resources;
 pub mod stages;
