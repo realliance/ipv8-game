@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 
-use crate::db::{models::World, DatabaseManager};
+use crate::db::models::World;
+use crate::db::DatabaseManager;
 
 pub struct WorldPlugin;
 

@@ -4,12 +4,12 @@ use std::env;
 
 use bevy::prelude::*;
 
-pub mod models;
 mod manager;
+pub mod models;
 mod schema;
 
-pub use schema::*;
 pub use manager::*;
+pub use schema::*;
 
 #[inline(always)]
 fn get_db_url() -> String {

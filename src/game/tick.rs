@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 
-use crate::{game::stages::GameStage, properties::GameProperties};
+use crate::game::stages::GameStage;
+use crate::properties::GameProperties;
 
-/// A component that is ticked every game step. use `::fired(&self)` to check whether
-/// the tick has fired and work should be done. When querying for [Ticked] use a label
-/// component alongside to filter better.
+/// A component that is ticked every game step. use `::fired(&self)` to check
+/// whether the tick has fired and work should be done. When querying for
+/// [Ticked] use a label component alongside to filter better.
 #[derive(Component)]
 pub struct Ticked {
   counter: u32,
@@ -44,8 +45,12 @@ impl Ticked {
     }
   }
 
-  /// Enter callback that will be executed the correct number of times for this game tick
-  pub fn fire<F>(&self, mut callback: F) where F: FnMut() -> () {
+  /// Enter callback that will be executed the correct number of times for this
+  /// game tick
+  pub fn fire<F>(&self, mut callback: F)
+  where
+    F: FnMut() -> (),
+  {
     for _ in 0..self.fired {
       callback();
     }
@@ -67,18 +72,17 @@ pub struct TickPlugin;
 impl Plugin for TickPlugin {
   fn build(&self, app: &mut App) {
     info!("Loading Tick System...");
-    app
-      .add_system_to_stage(GameStage::Start, tick_system);
+    app.add_system_to_stage(GameStage::Start, tick_system);
   }
 }
 
 #[cfg(test)]
 mod tests {
-use bevy::prelude::*;
+  use bevy::prelude::*;
 
-use crate::{game::stages::StagePlugin, properties::GameProperties};
-
-use super::{TickPlugin, Ticked};
+  use super::{TickPlugin, Ticked};
+  use crate::game::stages::StagePlugin;
+  use crate::properties::GameProperties;
 
   #[test]
   fn test_ticking() {

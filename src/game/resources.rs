@@ -3,9 +3,9 @@ use std::slice::Iter;
 use bevy::prelude::*;
 use serde::Deserialize;
 
+use super::tick::Ticked;
+use super::user::{UserOwned, UserResourceTable};
 use crate::game::stages::GameStage;
-
-use super::{user::{UserOwned, UserResourceTable}, tick::Ticked};
 
 /// A Resource in the game.
 #[derive(Deserialize, Clone, Copy)]
@@ -24,7 +24,10 @@ impl Resource {
 
   /// A shorthand function to generate a negative [ResourceDelta]
   pub fn cost(self, value: u32) -> ResourceDelta {
-    ResourceDelta { resource: self, value: -1 * (value as i64) }
+    ResourceDelta {
+      resource: self,
+      value: -1 * (value as i64),
+    }
   }
 }
 
@@ -36,19 +39,16 @@ pub struct ResourceDelta {
   pub value: i64,
 }
 
-/// Represents a resource cost that occures when the entity is [Ticked]. 
+/// Represents a resource cost that occures when the entity is [Ticked].
 #[derive(Component)]
 pub struct TickedResourceCost {
   costs: Vec<ResourceDelta>,
-  paid: bool
+  paid: bool,
 }
 
 impl TickedResourceCost {
   pub fn new(costs: Vec<ResourceDelta>) -> Self {
-    Self {
-      paid: false,
-      costs
-    }
+    Self { paid: false, costs }
   }
 
   /// Begins an iterator to verify if costs can be paid, and pay them if so.
@@ -68,15 +68,25 @@ impl TickedResourceCost {
   }
 }
 
-fn pay_ticked_resource_costs(mut res: ResMut<UserResourceTable>, mut query: Query<(&Ticked, &UserOwned, &mut TickedResourceCost)>) {
+fn pay_ticked_resource_costs(
+  mut res: ResMut<UserResourceTable>,
+  mut query: Query<(&Ticked, &UserOwned, &mut TickedResourceCost)>,
+) {
   query.for_each_mut(|(ticked, user, mut cost)| {
     ticked.fire(|| {
       if let Some(user) = res.get_mut(&user.0) {
-        if cost.iter_pay_costs().map(|x| user.pay_resources(x)).fold(true, |acc, i| acc && i) {
+        if cost
+          .iter_pay_costs()
+          .map(|x| user.pay_resources(x))
+          .fold(true, |acc, i| acc && i)
+        {
           cost.pay_costs();
         }
       } else {
-        warn!("Resource Cost attempted to be applied to User {}, which didn't exist.", user.0);
+        warn!(
+          "Resource Cost attempted to be applied to User {}, which didn't exist.",
+          user.0
+        );
       }
     });
   });
@@ -87,20 +97,22 @@ pub struct ResourcePlugin;
 impl Plugin for ResourcePlugin {
   fn build(&self, app: &mut App) {
     info!("Loading Resource System...");
-    app
-      .add_system_to_stage(GameStage::OnTicked, pay_ticked_resource_costs);
+    app.add_system_to_stage(GameStage::OnTicked, pay_ticked_resource_costs);
   }
 }
 
 #[cfg(test)]
 mod tests {
-use bevy::prelude::*;
-use hashbrown::HashMap;
-use uuid::Uuid;
+  use bevy::prelude::*;
+  use hashbrown::HashMap;
+  use uuid::Uuid;
 
-use crate::{game::{stages::StagePlugin, tick::{TickPlugin, Ticked}, user::{UserResourceTable, UserOwned}}, db::models::User, properties::GameProperties};
-
-use super::{ResourcePlugin, TickedResourceCost, Resource};
+  use super::{Resource, ResourcePlugin, TickedResourceCost};
+  use crate::db::models::User;
+  use crate::game::stages::StagePlugin;
+  use crate::game::tick::{TickPlugin, Ticked};
+  use crate::game::user::{UserOwned, UserResourceTable};
+  use crate::properties::GameProperties;
 
   #[test]
   fn test_resource_cost() {
@@ -114,20 +126,23 @@ use super::{ResourcePlugin, TickedResourceCost, Resource};
       .init_resource::<GameProperties>();
 
     let id = Uuid::new_v4();
-    let user = User {
-      id,
-      credits: 14,
-    };
+    let user = User { id, credits: 14 };
 
     // Insert a User with Data
-    app.world.insert_resource(UserResourceTable::new(HashMap::from([(id, user)])));
+    app
+      .world
+      .insert_resource(UserResourceTable::new(HashMap::from([(id, user)])));
 
     // Produce an entity with a ticked cost.
-    let building = app.world.spawn().insert_bundle((
-      Ticked::every_tick(),
-      UserOwned(id),
-      TickedResourceCost::new(vec![Resource::Credit.cost(5)])
-    )).id();
+    let building = app
+      .world
+      .spawn()
+      .insert_bundle((
+        Ticked::every_tick(),
+        UserOwned(id),
+        TickedResourceCost::new(vec![Resource::Credit.cost(5)]),
+      ))
+      .id();
 
     // Pay Cost #1
     app.update();

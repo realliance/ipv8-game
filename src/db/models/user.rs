@@ -3,7 +3,9 @@ use hashbrown::HashMap;
 use tracing::warn;
 use uuid::Uuid;
 
-use crate::{db::{schema::users, PooledPgConnection}, game::resources::{ResourceDelta, Resource}};
+use crate::db::schema::users;
+use crate::db::PooledPgConnection;
+use crate::game::resources::{Resource, ResourceDelta};
 
 #[derive(Queryable, Identifiable, Insertable, Clone, Debug)]
 #[diesel(table_name = users)]

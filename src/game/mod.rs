@@ -6,16 +6,16 @@ use world::WorldPlugin;
 
 use self::building::BuildingPlugin;
 use self::resources::ResourcePlugin;
-use self::stages::{StagePlugin};
+use self::stages::StagePlugin;
 use self::tick::TickPlugin;
 use self::user::UserPlugin;
 
 pub mod building;
 pub mod resources;
-pub mod user;
-pub mod world;
 pub mod stages;
 pub mod tick;
+pub mod user;
+pub mod world;
 
 pub struct GamePlugins;
 

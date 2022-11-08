@@ -1,7 +1,8 @@
-use std::{fs, path::Path};
-use bevy::prelude::*;
-use serde::{Serialize, Deserialize};
+use std::fs;
+use std::path::Path;
 
+use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 /// Game properties file, stored at `properties.toml`
 #[derive(Serialize, Deserialize)]
@@ -14,9 +15,9 @@ pub struct GameProperties {
 
 impl Default for GameProperties {
   fn default() -> Self {
-    Self { 
-      rpc_port: 1337, 
-      tick_speed: 1
+    Self {
+      rpc_port: 1337,
+      tick_speed: 1,
     }
   }
 }
@@ -51,11 +52,15 @@ pub struct PropertiesPlugin;
 
 impl Plugin for PropertiesPlugin {
   fn build(&self, app: &mut App) {
-    let config = GameProperties::from_file().map_err(|err| match err {
-      GamePropertiesError::FileError(err) => format!("A file error occured while loading properties.toml: {}", err),
-      GamePropertiesError::ParsingError(err) => format!("A parsing error occured while loading properties.toml: {}", err),
-      _ => unimplemented!(),
-    }).unwrap();
+    let config = GameProperties::from_file()
+      .map_err(|err| match err {
+        GamePropertiesError::FileError(err) => format!("A file error occured while loading properties.toml: {}", err),
+        GamePropertiesError::ParsingError(err) => {
+          format!("A parsing error occured while loading properties.toml: {}", err)
+        },
+        _ => unimplemented!(),
+      })
+      .unwrap();
 
     info!("properties.toml loaded");
     app.insert_resource(config);

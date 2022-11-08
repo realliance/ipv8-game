@@ -1,26 +1,21 @@
-
 #[macro_use]
 extern crate diesel;
 
-use args::{Args, process_command};
-use clap::Parser;
+use args::{process_command, Args};
 use bevy::log::LogPlugin;
 use bevy::prelude::*;
+use clap::Parser;
 
+pub mod args;
 pub mod db;
 pub mod game;
-pub mod args;
 pub mod properties;
-
-#[cfg(tests)]
-mod tests;
 
 fn main() {
   dotenv::dotenv().ok();
 
   let mut app: &mut App = &mut App::new();
-  app = app
-    .add_plugin(LogPlugin);
+  app = app.add_plugin(LogPlugin);
 
   let args = Args::parse();
   if process_command(args.command) {

@@ -1,5 +1,5 @@
 use clap::{Parser, Subcommand};
-use tracing::{info, error};
+use tracing::{error, info};
 
 use crate::properties::{GameProperties, GamePropertiesError};
 

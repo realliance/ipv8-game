@@ -1,10 +1,14 @@
 //! DatabaseManager Resource
-//! The [DatabaseManager] handles the database connection pool for the game. Since [Pool] defaults it's taking to a syncronous timeout, 
-//! [DatabaseManager] adds a later of safety and ergonomics with a [Semaphore], allowing for async waiting for a connection.
+//! The [DatabaseManager] handles the database connection pool for the game.
+//! Since [Pool] defaults it's taking to a syncronous timeout, [DatabaseManager]
+//! adds a later of safety and ergonomics with a [Semaphore], allowing for async
+//! waiting for a connection.
 
-use std::{ops::{Deref, DerefMut}, marker::PhantomData};
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
 
-use diesel::{r2d2::{Pool, ConnectionManager, PooledConnection}, PgConnection};
+use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
+use diesel::PgConnection;
 use tokio::sync::{Semaphore, SemaphorePermit};
 
 pub type PooledPgConnection = PooledConnection<ConnectionManager<PgConnection>>;
@@ -35,7 +39,7 @@ pub struct DatabaseManager<'a> {
   pool: Pool<ConnectionManager<PgConnection>>,
   /// Tracks number of connections remaining avaliable.
   take_count: Semaphore,
-  _marker: PhantomData<&'a Self>
+  _marker: PhantomData<&'a Self>,
 }
 
 impl<'a> DatabaseManager<'a> {
@@ -54,7 +58,7 @@ impl<'a> DatabaseManager<'a> {
     let permit = self.take_count.acquire().await.map_err(|x| x.to_string())?;
     Ok(AcquiredDatabaseConnection {
       connection: self.pool.get().map_err(|x| x.to_string())?,
-      _permit: permit
+      _permit: permit,
     })
   }
 
@@ -63,7 +67,7 @@ impl<'a> DatabaseManager<'a> {
     let permit = self.take_count.try_acquire().map_err(|x| x.to_string())?;
     Ok(AcquiredDatabaseConnection {
       connection: self.pool.get().map_err(|x| x.to_string())?,
-      _permit: permit
+      _permit: permit,
     })
   }
 }

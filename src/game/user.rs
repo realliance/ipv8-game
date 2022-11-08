@@ -4,7 +4,8 @@ use bevy::prelude::*;
 use hashbrown::HashMap;
 use uuid::Uuid;
 
-use crate::db::{models::User, DatabaseManager};
+use crate::db::models::User;
+use crate::db::DatabaseManager;
 
 #[derive(Clone)]
 pub struct UserResourceTable(HashMap<Uuid, User>);
@@ -29,7 +30,8 @@ impl DerefMut for UserResourceTable {
   }
 }
 
-/// Used to represent a component that is owned by a user, for things such as paying recurring costs.
+/// Used to represent a component that is owned by a user, for things such as
+/// paying recurring costs.
 #[derive(Component)]
 pub struct UserOwned(pub Uuid);
 
