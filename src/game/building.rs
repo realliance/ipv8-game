@@ -13,11 +13,11 @@ use super::user::{UserOwned, UserResourceTable};
 
 lazy_static::lazy_static! {
   /// All building definitions present in the game.
-  pub static ref BUILDINGS: Vec<BuildingDefinition> = load_building_definitions();
+  pub static ref BUILDING_TABLE: HashMap<String, BuildingDefinition> = load_building_definitions();
 }
 
 /// Loads all building files into a single list
-fn load_building_definitions() -> Vec<BuildingDefinition> {
+fn load_building_definitions() -> HashMap<String, BuildingDefinition> {
   glob("buildings/*.toml")
     .unwrap()
     .filter_map(|x| x.ok())
@@ -31,6 +31,7 @@ fn load_building_definitions() -> Vec<BuildingDefinition> {
       files.buildings
     })
     .flatten()
+    .map(|x| (x.name.clone(), x))
     .collect()
 }
 
@@ -131,12 +132,10 @@ pub struct BuildingPlugin;
 impl Plugin for BuildingPlugin {
   fn build(&self, app: &mut App) {
     info!("Loading Buildings...");
-    let building_table: HashMap<String, BuildingDefinition> =
-      BUILDINGS.clone().into_iter().map(|x| (x.name.clone(), x)).collect();
-    info!("Buildings Loaded: {}", building_table.len());
+    info!("Buildings Loaded: {}", BUILDING_TABLE.len());
 
     app
-      .insert_resource(BuildingDefinitionTable(building_table))
+      .insert_resource(BuildingDefinitionTable(BUILDING_TABLE.clone()))
       .add_system(on_tick_building_ticked_resources);
   }
 }
@@ -147,7 +146,7 @@ mod tests {
   use bevy::prelude::*;
   use uuid::Uuid;
 
-  use super::BUILDINGS;
+  use super::BUILDING_TABLE;
   use crate::game::building::Building;
 
   #[test]
@@ -158,13 +157,16 @@ mod tests {
     let commands = &mut Commands::new(&mut queue, &world);
 
     let owner = Uuid::new_v4();
-    let building_name = BUILDINGS[0].name.clone();
     // Spawn from the building definitions
-    BUILDINGS[0].spawn(commands, owner, IVec2 { x: 2, y: 4 });
+    BUILDING_TABLE["Headquarters"].spawn(commands, owner, IVec2 { x: 2, y: 4 });
     queue.apply(&mut world);
 
     assert_eq!(world.entities().len(), 1, "Building was not created");
     let building: Vec<&Building> = world.query::<&Building>().iter(&world).collect::<Vec<_>>();
-    assert_eq!(building[0].0, building_name);
+    assert_eq!(building[0].0, "Headquarters");
+  }
+
+  fn building_idle_gen() {
+
   }
 }
