@@ -144,10 +144,17 @@ impl Plugin for BuildingPlugin {
 mod tests {
   use bevy::ecs::system::CommandQueue;
   use bevy::prelude::*;
+  use hashbrown::HashMap;
   use uuid::Uuid;
 
   use super::BUILDING_TABLE;
-  use crate::game::building::Building;
+  use crate::db::models::User;
+  use crate::game::building::{Building, BuildingPlugin};
+  use crate::game::resources::ResourcePlugin;
+  use crate::game::stages::StagePlugin;
+  use crate::game::tick::TickPlugin;
+  use crate::game::user::UserResourceTable;
+  use crate::properties::GameProperties;
 
   #[test]
   fn building_spawns() {
@@ -166,7 +173,46 @@ mod tests {
     assert_eq!(building[0].0, "Headquarters");
   }
 
+  #[test]
   fn building_idle_gen() {
+    // Build App
+    let mut app = App::new();
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugin(StagePlugin)
+      .add_plugin(TickPlugin)
+      .add_plugin(ResourcePlugin)
+      .add_plugin(BuildingPlugin)
+      .init_resource::<GameProperties>();
 
+    let id = Uuid::new_v4();
+    let user = User { id: id.clone(), ..Default::default() };
+
+    // Insert a User with Data
+    app
+      .world
+      .insert_resource(UserResourceTable::new(HashMap::from([(user.id, user)])));
+
+        
+    let mut queue = CommandQueue::default();
+    let commands = &mut Commands::new(&mut queue, &app.world);
+
+    BUILDING_TABLE["Headquarters"].spawn(commands, id.clone(), IVec2 { x: 0, y: 0 });
+    queue.apply(&mut app.world);
+
+    app.update();
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 0);
+
+    app.update();
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 1);
+
+    app.update();
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 2);
   }
 }
