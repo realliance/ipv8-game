@@ -90,6 +90,25 @@ impl User {
     }
   }
 
+  pub fn pay_resource_transaction(&mut self, delta: Vec<ResourceDelta>) -> bool {
+    let pay_attempt = delta
+      .into_iter()
+      .map(|x| (self.pay_resources(&x.as_cost()), x))
+      .collect::<Vec<_>>();
+    if !pay_attempt.iter().fold(true, |acc, (success, _)| acc && *success) {
+      pay_attempt
+        .into_iter()
+        .filter(|(success, _)| *success)
+        .for_each(|(_, delta)| {
+          self.give_resources(&delta);
+        });
+
+      false
+    } else {
+      true
+    }
+  }
+
   pub fn give_resources(&mut self, delta: &ResourceDelta) {
     match delta.resource {
       Resource::Watt => todo!(),

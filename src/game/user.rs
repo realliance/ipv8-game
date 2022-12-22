@@ -7,6 +7,7 @@ use uuid::Uuid;
 use crate::db::models::User;
 use crate::db::DatabaseManager;
 
+/// Contains the table of all users in the world.
 #[derive(Clone)]
 pub struct UserResourceTable(HashMap<Uuid, User>);
 

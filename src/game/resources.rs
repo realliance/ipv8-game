@@ -8,7 +8,7 @@ use super::user::{UserOwned, UserResourceTable};
 use crate::game::stages::GameStage;
 
 /// A Resource in the game.
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub enum Resource {
   /// The basic unit of energy.
   Watt,
@@ -33,10 +33,26 @@ impl Resource {
 
 /// Represents information about how a resource changes. May be used as a
 /// producer (positive number) or consumer (negative number).
-#[derive(Deserialize, Clone, Copy)]
+#[derive(Deserialize, Clone, Copy, Debug)]
 pub struct ResourceDelta {
   pub resource: Resource,
   pub value: i64,
+}
+
+impl ResourceDelta {
+  pub fn as_cost(self) -> Self {
+    Self {
+      resource: self.resource,
+      value: -(self.value.abs()),
+    }
+  }
+
+  pub fn as_product(self) -> Self {
+    Self {
+      resource: self.resource,
+      value: self.value.abs(),
+    }
+  }
 }
 
 /// Represents a resource cost that occures when the entity is [Ticked].

@@ -37,6 +37,8 @@ fn load_building_definitions() -> HashMap<String, BuildingDefinition> {
 
 #[derive(Deserialize, Clone)]
 pub struct BuildingAction {
+  id: String,
+  #[allow(dead_code)]
   name: String,
   cooldown: u32,
   products: Option<Vec<ResourceDelta>>,
@@ -67,7 +69,7 @@ pub struct BuildingDefinition {
 }
 
 impl BuildingDefinition {
-  pub fn spawn(&self, commands: &mut Commands, owner: Uuid, position: IVec2) {
+  pub fn spawn(&self, commands: &mut Commands, owner: Uuid, position: IVec2) -> Entity {
     let ent = commands
       .spawn()
       .insert(Building(self.name.clone()))
@@ -87,6 +89,8 @@ impl BuildingDefinition {
           .insert(BuildingTickedResourceProduct(x.products.clone().unwrap_or_default()));
       });
     }
+
+    ent
   }
 }
 
@@ -127,6 +131,66 @@ fn on_tick_building_ticked_resources(
   });
 }
 
+/// Represents that the building is on cooldown. This will automatically tick
+/// down until it is deleted.
+#[derive(Component, Debug)]
+pub struct BuildingCooldown(pub u32);
+
+fn tick_down_building_cooldowns(
+  mut commands: Commands,
+  mut building_cooldowns: Query<(Entity, &mut BuildingCooldown)>,
+) {
+  building_cooldowns.for_each_mut(|(e, mut cooldown)| {
+    if cooldown.0 > 0 {
+      cooldown.0 -= 1;
+    } else {
+      commands.entity(e).remove::<BuildingCooldown>();
+    }
+  });
+}
+
+/// Represents a request to complete an action on a given entity
+#[derive(Component)]
+pub struct BuildingPerformAction {
+  pub user_origin: Uuid,
+  pub id: String,
+}
+
+fn dismiss_actions_when_on_cooldown(
+  mut commands: Commands,
+  query: Query<Entity, (With<Building>, With<BuildingPerformAction>, With<BuildingCooldown>)>,
+) {
+  query.for_each(|e| {
+    commands.entity(e).remove::<BuildingPerformAction>();
+  });
+}
+
+fn process_actions(
+  mut commands: Commands,
+  mut user_table: ResMut<UserResourceTable>,
+  query: Query<(Entity, &BuildingPerformAction, &Building, &UserOwned), Without<BuildingCooldown>>,
+) {
+  query.for_each(|(e, action_command, building, owner)| {
+    if let Some(user) = user_table.get_mut(&owner.0)
+    && let Some(building) = BUILDING_TABLE.get(&building.0)
+    && let Some(action) = building.actions.as_ref().unwrap_or(&Vec::new()).iter().find(|x| x.id == action_command.id)
+    && owner.0 == action_command.user_origin
+    && user.pay_resource_transaction(action.costs.clone().unwrap_or(Vec::new())) {
+      if let Some(products) = &action.products {
+        products.iter().for_each(|x| {
+          user.give_resources(x);
+        });
+
+        commands.entity(e).insert(BuildingCooldown(action.cooldown));
+      }
+    } else {
+      warn!("Unable to perform action");
+    }
+
+    commands.entity(e).remove::<BuildingPerformAction>();
+  });
+}
+
 pub struct BuildingPlugin;
 
 impl Plugin for BuildingPlugin {
@@ -136,7 +200,10 @@ impl Plugin for BuildingPlugin {
 
     app
       .insert_resource(BuildingDefinitionTable(BUILDING_TABLE.clone()))
-      .add_system(on_tick_building_ticked_resources);
+      .add_system(on_tick_building_ticked_resources)
+      .add_system(tick_down_building_cooldowns)
+      .add_system(process_actions)
+      .add_system(dismiss_actions_when_on_cooldown);
   }
 }
 
@@ -147,7 +214,7 @@ mod tests {
   use hashbrown::HashMap;
   use uuid::Uuid;
 
-  use super::BUILDING_TABLE;
+  use super::{BuildingCooldown, BuildingPerformAction, BUILDING_TABLE};
   use crate::db::models::User;
   use crate::game::building::{Building, BuildingPlugin};
   use crate::game::resources::ResourcePlugin;
@@ -186,14 +253,16 @@ mod tests {
       .init_resource::<GameProperties>();
 
     let id = Uuid::new_v4();
-    let user = User { id: id.clone(), ..Default::default() };
+    let user = User {
+      id: id.clone(),
+      ..Default::default()
+    };
 
     // Insert a User with Data
     app
       .world
       .insert_resource(UserResourceTable::new(HashMap::from([(user.id, user)])));
 
-        
     let mut queue = CommandQueue::default();
     let commands = &mut Commands::new(&mut queue, &app.world);
 
@@ -212,6 +281,154 @@ mod tests {
 
     app.update();
 
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 2);
+  }
+
+  #[test]
+  fn building_cooldown() {
+    // Build App
+    let mut app = App::new();
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugin(StagePlugin)
+      .add_plugin(TickPlugin)
+      .add_plugin(ResourcePlugin)
+      .add_plugin(BuildingPlugin)
+      .init_resource::<GameProperties>();
+
+    let id = Uuid::new_v4();
+    let user = User {
+      id: id.clone(),
+      ..Default::default()
+    };
+
+    // Insert a User with Data
+    app
+      .world
+      .insert_resource(UserResourceTable::new(HashMap::from([(user.id, user)])));
+
+    let mut queue = CommandQueue::default();
+    let commands = &mut Commands::new(&mut queue, &app.world);
+
+    let ent = commands.spawn().insert(BuildingCooldown(5)).id();
+    queue.apply(&mut app.world);
+
+    for x in 0..5 {
+      assert_eq!(app.world.entity(ent).get::<BuildingCooldown>().unwrap().0, 5 - x);
+      app.update();
+    }
+
+    // Component deleted itself
+    app.update();
+    let cooldown = app.world.entity(ent).get::<BuildingCooldown>();
+    assert!(
+      cooldown.is_none(),
+      "Expected to be deleted but instead was {:?}",
+      cooldown
+    );
+  }
+
+  #[test]
+  fn building_perform_action() {
+    // Build App
+    let mut app = App::new();
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugin(StagePlugin)
+      .add_plugin(TickPlugin)
+      .add_plugin(ResourcePlugin)
+      .add_plugin(BuildingPlugin)
+      .init_resource::<GameProperties>();
+
+    let id = Uuid::new_v4();
+    let user = User {
+      id: id.clone(),
+      credits: 1,
+    };
+
+    // Insert a User with Data
+    app
+      .world
+      .insert_resource(UserResourceTable::new(HashMap::from([(user.id, user)])));
+
+    let mut queue = CommandQueue::default();
+    let commands = &mut Commands::new(&mut queue, &app.world);
+
+    let ent = BUILDING_TABLE["Headquarters"].spawn(commands, id.clone(), IVec2 { x: 0, y: 0 });
+    commands.entity(ent).insert(BuildingPerformAction {
+      user_origin: id,
+      id: "increase_cash_flow".to_string(),
+    });
+
+    // Before spawn in
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 1);
+
+    queue.apply(&mut app.world);
+    app.update();
+
+    // Spawned in, action is processed
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 3);
+
+    app.update();
+
+    // Idle Gen
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 4);
+  }
+
+  #[test]
+  fn wont_perform_action_on_cooldown() {
+    // Build App
+    let mut app = App::new();
+    app
+      .add_plugins(MinimalPlugins)
+      .add_plugin(StagePlugin)
+      .add_plugin(TickPlugin)
+      .add_plugin(ResourcePlugin)
+      .add_plugin(BuildingPlugin)
+      .init_resource::<GameProperties>();
+
+    let id = Uuid::new_v4();
+    let user = User {
+      id: id.clone(),
+      credits: 1,
+    };
+
+    // Insert a User with Data
+    app
+      .world
+      .insert_resource(UserResourceTable::new(HashMap::from([(user.id, user)])));
+
+    let mut queue = CommandQueue::default();
+    let commands = &mut Commands::new(&mut queue, &app.world);
+
+    let ent = BUILDING_TABLE["Headquarters"].spawn(commands, id.clone(), IVec2 { x: 0, y: 0 });
+    commands
+      .entity(ent)
+      .insert(BuildingPerformAction {
+        user_origin: id,
+        id: "increase_cash_flow".to_string(),
+      })
+      .insert(BuildingCooldown(5));
+
+    // Start
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 1);
+
+    queue.apply(&mut app.world);
+    app.update();
+
+    // Spawned in, action didn't proc
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 1);
+
+    queue.apply(&mut app.world);
+    app.update();
+
+    // Verify won't proc
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
     assert_eq!(user_table.get(&id).unwrap().credits, 2);
   }
