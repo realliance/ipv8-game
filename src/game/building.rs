@@ -7,6 +7,8 @@ use hashbrown::HashMap;
 use serde::Deserialize;
 use uuid::Uuid;
 
+use crate::game::stages::GameStage;
+
 use super::resources::{ResourceDelta, TickedResourceCost};
 use super::tick::Ticked;
 use super::user::{UserOwned, UserResourceTable};
@@ -200,10 +202,10 @@ impl Plugin for BuildingPlugin {
 
     app
       .insert_resource(BuildingDefinitionTable(BUILDING_TABLE.clone()))
-      .add_system(on_tick_building_ticked_resources)
-      .add_system(tick_down_building_cooldowns)
-      .add_system(process_actions)
-      .add_system(dismiss_actions_when_on_cooldown);
+      .add_system_to_stage(GameStage::OnResourcesPaid, on_tick_building_ticked_resources)
+      .add_system_to_stage(GameStage::Start, tick_down_building_cooldowns)
+      .add_system_to_stage(GameStage::OnResourcesPaid, process_actions)
+      .add_system_to_stage(GameStage::OnTicked, dismiss_actions_when_on_cooldown);
   }
 }
 
@@ -272,17 +274,17 @@ mod tests {
     app.update();
 
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
-    assert_eq!(user_table.get(&id).unwrap().credits, 0);
-
-    app.update();
-
-    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
     assert_eq!(user_table.get(&id).unwrap().credits, 1);
 
     app.update();
 
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
     assert_eq!(user_table.get(&id).unwrap().credits, 2);
+
+    app.update();
+
+    let user_table: &UserResourceTable = app.world.get_resource().unwrap();
+    assert_eq!(user_table.get(&id).unwrap().credits, 3);
   }
 
   #[test]
@@ -368,15 +370,15 @@ mod tests {
     queue.apply(&mut app.world);
     app.update();
 
-    // Spawned in, action is processed
+    // Spawned in, action is processed and idle gen proced
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
-    assert_eq!(user_table.get(&id).unwrap().credits, 3);
+    assert_eq!(user_table.get(&id).unwrap().credits, 4);
 
     app.update();
 
     // Idle Gen
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
-    assert_eq!(user_table.get(&id).unwrap().credits, 4);
+    assert_eq!(user_table.get(&id).unwrap().credits, 5);
   }
 
   #[test]
@@ -423,13 +425,13 @@ mod tests {
 
     // Spawned in, action didn't proc
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
-    assert_eq!(user_table.get(&id).unwrap().credits, 1);
+    assert_eq!(user_table.get(&id).unwrap().credits, 2);
 
     queue.apply(&mut app.world);
     app.update();
 
     // Verify won't proc
     let user_table: &UserResourceTable = app.world.get_resource().unwrap();
-    assert_eq!(user_table.get(&id).unwrap().credits, 2);
+    assert_eq!(user_table.get(&id).unwrap().credits, 3);
   }
 }
