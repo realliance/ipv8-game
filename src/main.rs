@@ -24,10 +24,16 @@ fn main() {
     return;
   }
 
-  app
+  info!("Loading plugins...");
+
+  let app = app
     .add_plugins(MinimalPlugins)
     .add_plugin(properties::PropertiesPlugin)
     .add_plugin(db::DatabasePlugin)
-    .add_plugins(game::GamePlugins)
+    .add_plugins(game::GamePlugins);
+
+  info!("Starting game...");
+
+  app
     .run();
 }

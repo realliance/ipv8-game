@@ -8,6 +8,7 @@ mod manager;
 pub mod models;
 mod schema;
 
+use diesel_migrations::{MigrationHarness, EmbeddedMigrations, embed_migrations};
 pub use manager::*;
 pub use schema::*;
 
@@ -28,15 +29,22 @@ fn get_db_url() -> String {
   )
 }
 
+pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
+
 pub struct DatabasePlugin;
 
 impl Plugin for DatabasePlugin {
   fn build(&self, app: &mut App) {
     let db = DatabaseManager::new(get_db_url());
+    
     if let Err(err) = db {
       panic!("Error while starting DatabaseManager {}", err);
     }
 
-    app.insert_resource(db.unwrap());
+    let db = db.unwrap();
+    info!("Performing migrations...");
+    db.try_take().unwrap().run_pending_migrations(MIGRATIONS).unwrap();
+
+    app.insert_resource(db);
   }
 }

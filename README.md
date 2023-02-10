@@ -10,6 +10,7 @@
 
 - `capnp`
 - `postgresql-dev` (whatever can give you `libpq`)
+- `just`
 - Container runtime and Docker Compose compatible tool
 
 ### Note for Mac
@@ -19,6 +20,9 @@ You will additionally need to link the installed `libpq` crate via `brew link --
 ```
 # Bring up the dev services
 kubectl apply -k manifests/overlays/development
+
+# Generate env file
+just
 
 # Generate a default properties file
 cargo run -- gen-config
