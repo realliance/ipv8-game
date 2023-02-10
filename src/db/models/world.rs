@@ -29,7 +29,7 @@ impl World {
 }
 
 #[derive(Insertable)]
-#[table_name = "worlds"]
+#[diesel(table_name = worlds)]
 pub struct WorldBuilder {
   origin_time: NaiveDateTime,
   seed: i64,
