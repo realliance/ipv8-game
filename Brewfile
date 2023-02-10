@@ -1,0 +1,2 @@
+brew "capnp"
+brew "libpq"

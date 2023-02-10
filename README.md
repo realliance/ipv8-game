@@ -5,6 +5,16 @@
 
 ## Getting Started
 
+### Install dependencies
+*On Mac use `brew bundle`*
+
+- `capnp`
+- `postgresql-dev` (whatever can give you `libpq`)
+
+### Note for Mac
+
+You will additionally need to link the installed `libpq` crate via `brew link --force libpq`
+
 ```
 # Bring up the dev services
 docker-compose up -d
