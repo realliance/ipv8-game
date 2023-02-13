@@ -14,9 +14,20 @@ pub struct Args {
 pub enum Commands {
   /// Generates a default properties.toml file
   GenConfig,
+
+  /// Enables a debug window viewer to display the current world
+  DebugView,
 }
 
-pub fn process_command(command: Option<Commands>) -> bool {
+#[derive(PartialEq, Eq)]
+/// Side effects from processing arg commands that need to be consumed
+/// elsewhere.
+pub enum ArgsSideEffect {
+  Exit,
+  AddDebuggingWindowPlugins,
+}
+
+pub fn process_command(command: Option<Commands>) -> Option<ArgsSideEffect> {
   if let Some(command) = command {
     match command {
       Commands::GenConfig => {
@@ -28,11 +39,12 @@ pub fn process_command(command: Option<Commands>) -> bool {
         }) {
           error!("Error: {}", err);
         }
-      },
-    }
 
-    true
+        Some(ArgsSideEffect::Exit)
+      },
+      Commands::DebugView => Some(ArgsSideEffect::AddDebuggingWindowPlugins),
+    }
   } else {
-    false
+    None
   }
 }

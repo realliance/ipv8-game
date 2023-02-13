@@ -7,11 +7,10 @@ use hashbrown::HashMap;
 use serde::Deserialize;
 use uuid::Uuid;
 
-use crate::game::stages::GameStage;
-
 use super::resources::{ResourceDelta, TickedResourceCost};
 use super::tick::Ticked;
 use super::user::{UserOwned, UserResourceTable};
+use crate::game::stages::GameStage;
 
 lazy_static::lazy_static! {
   /// All building definitions present in the game.

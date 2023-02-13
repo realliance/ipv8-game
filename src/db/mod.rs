@@ -8,7 +8,7 @@ mod manager;
 pub mod models;
 mod schema;
 
-use diesel_migrations::{MigrationHarness, EmbeddedMigrations, embed_migrations};
+use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 pub use manager::*;
 pub use schema::*;
 
@@ -36,7 +36,7 @@ pub struct DatabasePlugin;
 impl Plugin for DatabasePlugin {
   fn build(&self, app: &mut App) {
     let db = DatabaseManager::new(get_db_url());
-    
+
     if let Err(err) = db {
       panic!("Error while starting DatabaseManager {}", err);
     }
