@@ -65,11 +65,11 @@ impl WorldGenerator {
   }
 
   pub fn get_tile(&self, world: &World, pos: [i32; 2]) -> TerrainTile {
-    let base_terrain_mod = self.get_base_terrain_modifier(world, pos);
-
     if let Some(base_terrain) = self.base_terrain.iter().find(|x| x.get_tile(world, pos, 0.0)) {
       return base_terrain.terrain_tile();
     }
+
+    let base_terrain_mod = self.get_base_terrain_modifier(world, pos);
 
     self
       .world_resources
