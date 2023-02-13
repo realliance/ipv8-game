@@ -118,7 +118,6 @@ impl WorldGenPlugin {
       return;
     }
 
-    info!("Loading Chunk [{}, {}]", position[0], position[1]);
     let ent = commands
       .spawn_bundle(SpriteBundle::default())
       .insert(SpawnedChunk(position))
@@ -152,7 +151,6 @@ impl WorldGenPlugin {
 
   pub fn unload_chunk(commands: &mut Commands, chunk_table: &mut LoadedChunkTable, position: [i32; 2]) {
     if let Some(chunk) = chunk_table.0.remove(&position) {
-      info!("Unloading Chunk [{}, {}]", position[0], position[1]);
       commands.entity(chunk).despawn_recursive();
     }
   }

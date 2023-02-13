@@ -19,11 +19,12 @@ impl WorldResource for Iron {
     TerrainTile::Iron
   }
 
-  fn get_tile(&self, world: &World, [x, y]: [i32; 2]) -> bool {
-    const NOISE_SCALE: f64 = 0.18;
+  fn get_tile(&self, world: &World, position: [i32; 2], base_terrain_mod: f64) -> bool {
+    self.get_value(world, position) - base_terrain_mod > 0.8
+  }
 
-    let value = world.noise_gen.get([x as f64 * NOISE_SCALE, y as f64 * NOISE_SCALE]);
-
-    value > 0.7
+  fn get_value(&self, world: &World, [x, y]: [i32; 2]) -> f64 {
+    const NOISE_SCALE: f64 = 0.03;
+    world.noise_gen.get([x as f64 * NOISE_SCALE, y as f64 * NOISE_SCALE])
   }
 }
