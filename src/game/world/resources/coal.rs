@@ -2,6 +2,7 @@ use noise::NoiseFn;
 
 use super::WorldResource;
 use crate::db::models::World;
+use crate::game::world::ComplexTerrainTile;
 use crate::game::world::gen::TerrainTile;
 
 pub struct Coal;
@@ -15,8 +16,9 @@ impl WorldResource for Coal {
     "Coal"
   }
 
-  fn terrain_tile(&self) -> TerrainTile {
-    TerrainTile::Coal
+  fn terrain_tile(&self, world: &World, position: [i32; 2]) -> TerrainTile {
+    let value = self.get_complex_tile_value(world, position, 1000..10000);
+    TerrainTile::Complex(ComplexTerrainTile::Coal(value))
   }
 
 

@@ -1,6 +1,9 @@
+use std::ops::Range;
+
 use crate::db::models::World;
 
 mod water;
+use rand::{rngs::StdRng, SeedableRng, Rng};
 pub use water::*;
 
 mod copper;
@@ -15,10 +18,16 @@ pub use coal::*;
 mod impassable;
 pub use impassable::*;
 
-use super::gen::TerrainTile;
+use super::{gen::TerrainTile, StaticTerrainTile};
 
 pub trait WorldResource: Send + Sync {
-  fn terrain_tile(&self) -> TerrainTile;
+  fn get_complex_tile_value(&self, world: &World, position: [i32; 2], range: Range<u32>) -> u32 {
+    let seed = (world.seed as u64) ^ position[0] as u64 ^ position[1] as u64;
+    let mut rng = StdRng::seed_from_u64(seed);
+    rng.gen_range(range)
+  }
+
+  fn terrain_tile(&self, world: &World, position: [i32; 2]) -> TerrainTile;
   fn priority(&self) -> u8;
   fn name(&self) -> &str;
   fn get_value(&self, world: &World, position: [i32; 2]) -> f64;
@@ -66,7 +75,7 @@ impl WorldGenerator {
 
   pub fn get_tile(&self, world: &World, pos: [i32; 2]) -> TerrainTile {
     if let Some(base_terrain) = self.base_terrain.iter().find(|x| x.get_tile(world, pos, 0.0)) {
-      return base_terrain.terrain_tile();
+      return base_terrain.terrain_tile(&world, pos);
     }
 
     let base_terrain_mod = self.get_base_terrain_modifier(world, pos);
@@ -75,8 +84,8 @@ impl WorldGenerator {
       .world_resources
       .iter()
       .find(|x| x.get_tile(world, pos, base_terrain_mod))
-      .map(|x| x.terrain_tile())
-      .unwrap_or(TerrainTile::Stone)
+      .map(|x| x.terrain_tile(world, pos))
+      .unwrap_or(TerrainTile::Static(StaticTerrainTile::Stone))
   }
 }
 

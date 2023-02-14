@@ -26,6 +26,8 @@ impl Plugin for WorldPlugin {
       World::from_db(conn).unwrap_or(World::build().save(conn))
     };
 
-    app.insert_resource(world).add_plugin(WorldGenPlugin);
+    app
+      .insert_resource(world)
+      .add_plugin(WorldGenPlugin);
   }
 }

@@ -2,6 +2,7 @@ use noise::NoiseFn;
 
 use super::WorldResource;
 use crate::db::models::World;
+use crate::game::world::StaticTerrainTile;
 use crate::game::world::gen::TerrainTile;
 
 pub struct Impassable;
@@ -15,8 +16,8 @@ impl WorldResource for Impassable {
     "Impassable"
   }
 
-  fn terrain_tile(&self) -> TerrainTile {
-    TerrainTile::Impassable
+  fn terrain_tile(&self, _: &World, _: [i32; 2]) -> TerrainTile {
+    TerrainTile::Static(StaticTerrainTile::Impassable)
   }
 
   fn get_tile(&self, world: &World, position: [i32; 2], base_terrain_mod: f64) -> bool {

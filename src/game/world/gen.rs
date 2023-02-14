@@ -6,36 +6,37 @@ use lazy_static::lazy_static;
 use super::resources::*;
 use crate::db::models::World;
 
+#[repr(u8)]
 #[derive(Debug, Clone, Copy)]
-pub enum TerrainTile {
+pub enum StaticTerrainTile {
   Water = 0,
   Stone = 1,
-  Iron = 2,
-  Copper = 3,
-  Coal = 4,
   Impassable = 5,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ComplexTerrainTile {
+  Copper(u32),
+  Coal(u32),
+  Iron(u32),
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy)]
+pub enum TerrainTile {
+  Static(StaticTerrainTile),
+  Complex(ComplexTerrainTile)
 }
 
 impl TerrainTile {
   pub fn get_tile_color(&self) -> Color {
     match self {
-      TerrainTile::Water => Color::BLUE,
-      TerrainTile::Stone => Color::GRAY,
-      TerrainTile::Iron => Color::SILVER,
-      TerrainTile::Copper => Color::ORANGE,
-      TerrainTile::Coal => Color::DARK_GRAY,
-      TerrainTile::Impassable => Color::BLACK,
-    }
-  }
-
-  pub fn get_letter(&self) -> &str {
-    match self {
-      TerrainTile::Water => "W",
-      TerrainTile::Stone => ".",
-      TerrainTile::Iron => "I",
-      TerrainTile::Copper => "C",
-      TerrainTile::Coal => "L",
-      TerrainTile::Impassable => "X",
+      Self::Static(StaticTerrainTile::Water) => Color::BLUE,
+      Self::Static(StaticTerrainTile::Stone) => Color::GRAY,
+      Self::Complex(ComplexTerrainTile::Iron(_)) => Color::SILVER,
+      Self::Complex(ComplexTerrainTile::Copper(_)) => Color::ORANGE,
+      Self::Complex(ComplexTerrainTile::Coal(_)) => Color::DARK_GRAY,
+      Self::Static(StaticTerrainTile::Impassable) => Color::BLACK,
     }
   }
 }
@@ -71,7 +72,7 @@ impl World {
     let x = x * Self::CHUNK_SIDE_LENGTH as i32;
     let y = y * Self::CHUNK_SIDE_LENGTH as i32;
 
-    let mut chunk = [TerrainTile::Stone; Self::CHUNK_SIZE];
+    let mut chunk = [TerrainTile::Static(StaticTerrainTile::Stone); Self::CHUNK_SIZE];
 
     CHUNK_TABLE.iter().for_each(|(x_offset, y_offset)| {
       chunk[Self::get_chunk_index([*x_offset, *y_offset])] =
@@ -79,17 +80,6 @@ impl World {
     });
 
     chunk
-  }
-
-  /// Debug output a chunk to standard output
-  pub fn print_chunk(chunk: &[TerrainTile; Self::CHUNK_SIZE]) {
-    let text_block = chunk
-      .chunks(Self::CHUNK_SIDE_LENGTH)
-      .map(|row| row.into_iter().map(|x| x.get_letter()).collect::<Vec<_>>().join(""))
-      .collect::<Vec<_>>()
-      .join("\n");
-
-    info!("Chunk Output:\n{}", text_block);
   }
 }
 
@@ -173,8 +163,8 @@ impl Plugin for WorldGenPlugin {
   fn build(&self, app: &mut App) {
     app
       .init_resource::<WorldGenerator>()
-      .init_resource::<LoadedChunkTable>()
       .add_event::<ChunkRequests>()
+      .init_resource::<LoadedChunkTable>()
       .add_system(Self::process_chunk_requests);
   }
 }

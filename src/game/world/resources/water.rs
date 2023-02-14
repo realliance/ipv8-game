@@ -2,6 +2,7 @@ use noise::NoiseFn;
 
 use super::WorldResource;
 use crate::db::models::World;
+use crate::game::world::StaticTerrainTile;
 use crate::game::world::gen::TerrainTile;
 
 pub struct Water;
@@ -15,8 +16,8 @@ impl WorldResource for Water {
     "Water"
   }
 
-  fn terrain_tile(&self) -> TerrainTile {
-    TerrainTile::Water
+  fn terrain_tile(&self, _: &World, _: [i32; 2]) -> TerrainTile {
+    TerrainTile::Static(StaticTerrainTile::Water)
   }
 
   fn get_tile(&self, world: &World, position: [i32; 2], base_terrain_mod: f64) -> bool {
