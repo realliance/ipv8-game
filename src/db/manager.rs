@@ -4,7 +4,6 @@
 //! adds a later of safety and ergonomics with a [Semaphore], allowing for async
 //! waiting for a connection.
 
-use std::marker::PhantomData;
 use std::ops::{Deref, DerefMut};
 
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
@@ -34,39 +33,44 @@ impl<'a> DerefMut for AcquiredDatabaseConnection<'a> {
 }
 
 /// The Main Database Management Resource.
-pub struct DatabaseManager<'a> {
+pub struct DatabaseManager {
   /// Database Pool.
-  pool: Pool<ConnectionManager<PgConnection>>,
+  pool: Option<Pool<ConnectionManager<PgConnection>>>,
   /// Tracks number of connections remaining avaliable.
   take_count: Semaphore,
-  _marker: PhantomData<&'a Self>,
 }
 
-impl<'a> DatabaseManager<'a> {
+impl DatabaseManager {
   /// Creates a new PostgreSQL database connection pool within the manager.
   pub fn new(connection: String) -> Result<Self, String> {
     let pool = Pool::new(ConnectionManager::new(connection)).map_err(|x| x.to_string())?;
     Ok(Self {
       take_count: Semaphore::new(pool.state().idle_connections as usize),
-      pool,
-      _marker: PhantomData::default(),
+      pool: Some(pool),
     })
   }
 
+  pub fn test_harness() -> Self {
+    Self {
+      take_count: Semaphore::new(0),
+      pool: None,
+    }
+  }
+
   /// Async waits for a connection to become avaliable and then takes it.
-  pub async fn take(&'a self) -> Result<AcquiredDatabaseConnection<'a>, String> {
+  pub async fn take(&self) -> Result<AcquiredDatabaseConnection, String> {
     let permit = self.take_count.acquire().await.map_err(|x| x.to_string())?;
     Ok(AcquiredDatabaseConnection {
-      connection: self.pool.get().map_err(|x| x.to_string())?,
+      connection: self.pool.as_ref().unwrap().get().map_err(|x| x.to_string())?,
       _permit: permit,
     })
   }
 
   /// Attempts to take a free connection, and errors if fails to.
-  pub fn try_take(&'a self) -> Result<AcquiredDatabaseConnection<'a>, String> {
+  pub fn try_take(&self) -> Result<AcquiredDatabaseConnection, String> {
     let permit = self.take_count.try_acquire().map_err(|x| x.to_string())?;
     Ok(AcquiredDatabaseConnection {
-      connection: self.pool.get().map_err(|x| x.to_string())?,
+      connection: self.pool.as_ref().unwrap().get().map_err(|x| x.to_string())?,
       _permit: permit,
     })
   }

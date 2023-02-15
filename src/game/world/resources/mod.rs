@@ -23,17 +23,17 @@ use super::gen::TerrainTile;
 use super::StaticTerrainTile;
 
 pub trait WorldResource: Send + Sync {
-  fn get_complex_tile_value(&self, world: &World, position: [i32; 2], range: Range<u32>) -> u32 {
+  fn get_complex_tile_value(&self, world: &World, position: [i64; 2], range: Range<u32>) -> u32 {
     let seed = (world.seed as u64) ^ position[0] as u64 ^ position[1] as u64;
     let mut rng = StdRng::seed_from_u64(seed);
     rng.gen_range(range)
   }
 
-  fn terrain_tile(&self, world: &World, position: [i32; 2]) -> TerrainTile;
+  fn terrain_tile(&self, world: &World, position: [i64; 2]) -> TerrainTile;
   fn priority(&self) -> u8;
   fn name(&self) -> &str;
-  fn get_value(&self, world: &World, position: [i32; 2]) -> f64;
-  fn get_tile(&self, world: &World, position: [i32; 2], base_terrain_modifier: f64) -> bool;
+  fn get_value(&self, world: &World, position: [i64; 2]) -> f64;
+  fn get_tile(&self, world: &World, position: [i64; 2], base_terrain_modifier: f64) -> bool;
 }
 
 pub struct WorldGenerator {
@@ -67,7 +67,7 @@ impl WorldGenerator {
     }
   }
 
-  pub fn get_base_terrain_modifier(&self, world: &World, pos: [i32; 2]) -> f64 {
+  pub fn get_base_terrain_modifier(&self, world: &World, pos: [i64; 2]) -> f64 {
     self
       .base_terrain
       .iter()
@@ -76,7 +76,7 @@ impl WorldGenerator {
       .unwrap_or(0.0)
   }
 
-  pub fn get_tile(&self, world: &World, pos: [i32; 2]) -> TerrainTile {
+  pub fn get_tile(&self, world: &World, pos: [i64; 2]) -> TerrainTile {
     if let Some(base_terrain) = self.base_terrain.iter().find(|x| x.get_tile(world, pos, 0.0)) {
       return base_terrain.terrain_tile(&world, pos);
     }

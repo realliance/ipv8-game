@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use itertools::Itertools;
 
 use crate::db::models::World;
-use crate::game::world::{ChunkRequests, LoadedChunkTable};
+use crate::game::world::{LoadedChunkTable, LoadChunkCommand};
 
 pub struct DebugCameraPlugin;
 
@@ -51,37 +51,25 @@ impl DebugCameraPlugin {
   }
 
   pub fn load_chunks_in_view(
+    mut commands: Commands,
     query: Query<&Transform, With<Camera>>,
-    mut requests: EventWriter<ChunkRequests>,
     chunk_table: Res<LoadedChunkTable>,
   ) {
-    const CHUNK_RADIUS: i32 = 2;
+    const CHUNK_RADIUS: i64 = 2;
 
     query.for_each(|trans| {
       let rounded_position =
         (trans.translation.truncate() / World::CHUNK_SIDE_LENGTH as f32 / World::TILE_PIXEL_SIZE).round();
-      let pos = [rounded_position.x as i32, rounded_position.y as i32];
+      let pos = [rounded_position.x as i64, rounded_position.y as i64];
 
-      if !chunk_table.0.contains_key(&pos) {
+      if chunk_table.get_if_exists(pos).is_none() {
         let [x, y] = pos;
         // Load New Chunks
         ((x - CHUNK_RADIUS)..(x + CHUNK_RADIUS))
           .cartesian_product((y - CHUNK_RADIUS)..(y + CHUNK_RADIUS))
           .for_each(|(x, y)| {
-            requests.send(ChunkRequests::Load(x, y));
+            commands.spawn().insert(LoadChunkCommand([x, y]));
           });
-
-        // Unload Old Chunks
-        let unloading_boundary: Vec<[i32; 2]> = ((x - CHUNK_RADIUS - 1)..(x + CHUNK_RADIUS + 1))
-          .cartesian_product((y - CHUNK_RADIUS - 1)..(y + CHUNK_RADIUS + 1))
-          .map(|(x, y)| [x, y])
-          .collect_vec();
-        chunk_table.0.iter().for_each(|(key, _)| {
-          if !unloading_boundary.contains(key) {
-            let [x, y] = key;
-            requests.send(ChunkRequests::Unload(*x, *y));
-          }
-        });
       }
     });
   }

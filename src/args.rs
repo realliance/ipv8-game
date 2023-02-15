@@ -1,5 +1,4 @@
 use clap::{Parser, Subcommand};
-use tracing::{error, info};
 
 use crate::properties::{GameProperties, GamePropertiesError};
 
@@ -31,13 +30,13 @@ pub fn process_command(command: Option<Commands>) -> Option<ArgsSideEffect> {
   if let Some(command) = command {
     match command {
       Commands::GenConfig => {
-        info!("Generating default config file...");
+        println!("Generating default config file...");
         if let Err(err) = GameProperties::generate_default_config().map_err(|err| match err {
           GamePropertiesError::AlreadyExists => "Properties file already exists".to_string(),
           GamePropertiesError::FileError(err) => err.to_string(),
           GamePropertiesError::ParsingError(err) => err.to_string(),
         }) {
-          error!("Error: {}", err);
+          println!("Error: {}", err);
         }
 
         Some(ArgsSideEffect::Exit)

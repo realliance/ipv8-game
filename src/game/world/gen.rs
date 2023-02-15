@@ -4,7 +4,7 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 
 use super::resources::*;
-use crate::db::models::World;
+use crate::db::{models::{World, Chunk}, DatabaseManager, AcquiredDatabaseConnection};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -39,6 +39,38 @@ impl TerrainTile {
       Self::Static(StaticTerrainTile::Impassable) => Color::BLACK,
     }
   }
+
+  pub fn into_chunk_tile_id(&self) -> u8 {
+    match self {
+      Self::Static(StaticTerrainTile::Water) => 0,
+      Self::Static(StaticTerrainTile::Stone) => 1,
+      Self::Static(StaticTerrainTile::Impassable) => 2,
+      Self::Complex(ComplexTerrainTile::Iron(_)) => 3,
+      Self::Complex(ComplexTerrainTile::Copper(_)) => 4,
+      Self::Complex(ComplexTerrainTile::Coal(_)) => 5,
+    }
+  }
+
+  pub fn get_metadata(&self) -> Option<u32> {
+    match self {
+      Self::Complex(ComplexTerrainTile::Iron(metadata)) => Some(*metadata),
+      Self::Complex(ComplexTerrainTile::Copper(metadata)) => Some(*metadata),
+      Self::Complex(ComplexTerrainTile::Coal(metadata)) => Some(*metadata),
+      _ => None,
+    }
+  }
+
+  pub fn from_chunk_tile_id_and_metadata(chunk_tile_id: u8, metadata: Option<u32>) -> Option<Self> {
+    match (chunk_tile_id, metadata) {
+      (0, _) => Some(Self::Static(StaticTerrainTile::Water)),
+      (1, _) => Some(Self::Static(StaticTerrainTile::Stone)),
+      (2, _) => Some(Self::Static(StaticTerrainTile::Impassable)),
+      (3, Some(metadata)) => Some(Self::Complex(ComplexTerrainTile::Iron(metadata))),
+      (4, Some(metadata)) => Some(Self::Complex(ComplexTerrainTile::Copper(metadata))),
+      (5, Some(metadata)) => Some(Self::Complex(ComplexTerrainTile::Coal(metadata))),
+      _ => None,
+    }
+  }
 }
 
 lazy_static! {
@@ -54,9 +86,17 @@ impl World {
 
   /// Returns the position of a tile given it's index in the chunk list.
   #[inline(always)]
-  pub fn get_tile_position_from_index([c_x, c_y]: [i32; 2], index: usize) -> [i32; 2] {
-    let x = (index % World::CHUNK_SIDE_LENGTH) as i32 + (c_x * World::CHUNK_SIDE_LENGTH as i32);
-    let y = (index / World::CHUNK_SIDE_LENGTH) as i32 + (c_y * World::CHUNK_SIDE_LENGTH as i32);
+  pub fn get_tile_position_from_index([c_x, c_y]: [i64; 2], index: usize) -> [i64; 2] {
+    let x = (index % World::CHUNK_SIDE_LENGTH) as i64 + (c_x * World::CHUNK_SIDE_LENGTH as i64);
+    let y = (index / World::CHUNK_SIDE_LENGTH) as i64 + (c_y * World::CHUNK_SIDE_LENGTH as i64);
+    [x, y]
+  }
+
+  /// Returns position of tile from within the chunk.
+  #[inline(always)]
+  pub fn get_localized_tile_position_form_index(index: usize) -> [i32; 2] {
+    let x = (index % World::CHUNK_SIDE_LENGTH) as i32;
+    let y = (index / World::CHUNK_SIDE_LENGTH) as i32;
     [x, y]
   }
 
@@ -68,101 +108,139 @@ impl World {
 
   /// Returns a chunk for the given world, using the properties of the provided
   /// world generator.
-  pub fn get_chunk(&self, generator: &WorldGenerator, [x, y]: [i32; 2]) -> [TerrainTile; Self::CHUNK_SIZE] {
-    let x = x * Self::CHUNK_SIDE_LENGTH as i32;
-    let y = y * Self::CHUNK_SIDE_LENGTH as i32;
+  pub fn get_chunk(&self, generator: &WorldGenerator, [x, y]: [i64; 2]) -> [TerrainTile; Self::CHUNK_SIZE] {
+    let x = x * Self::CHUNK_SIDE_LENGTH as i64;
+    let y = y * Self::CHUNK_SIDE_LENGTH as i64;
 
     let mut chunk = [TerrainTile::Static(StaticTerrainTile::Stone); Self::CHUNK_SIZE];
 
     CHUNK_TABLE.iter().for_each(|(x_offset, y_offset)| {
       chunk[Self::get_chunk_index([*x_offset, *y_offset])] =
-        generator.get_tile(&self, [x + *x_offset as i32, y + *y_offset as i32])
+        generator.get_tile(&self, [x + *x_offset as i64, y + *y_offset as i64])
     });
 
     chunk
   }
 }
 
-pub enum ChunkRequests {
-  Load(i32, i32),
-  Unload(i32, i32),
-}
-
 #[derive(Component)]
-pub struct SpawnedChunk([i32; 2]);
+pub struct SpawnedChunk([i64; 2]);
 
 pub struct LoadedChunk {
   pub chunk: [TerrainTile; World::CHUNK_SIZE],
-  pub spawned_entity: Entity,
+  pub spawned_entity: Option<Entity>,
 }
 
 #[derive(Default)]
-pub struct LoadedChunkTable(pub HashMap<[i32; 2], LoadedChunk>);
+pub struct LoadedChunkTable(HashMap<[i64; 2], LoadedChunk>);
+
+impl LoadedChunkTable {
+  pub fn get(&mut self, conn: Option<AcquiredDatabaseConnection>, generator: &WorldGenerator, world: &World, position: [i64; 2]) -> &LoadedChunk {
+    if !self.0.contains_key(&position) {
+      let [chunk_x, chunk_y] = position;
+      if let Some(mut conn) = conn {
+        if let Ok(chunk) = Chunk::from_xy(&mut *conn, chunk_x, chunk_y) {
+          self.0.insert(position, LoadedChunk { chunk, spawned_entity: None });
+        } else {
+          self.gen(generator, world, position);
+          Chunk::save_chunk(&mut *conn, chunk_x, chunk_y, &self.0.get(&position).unwrap().chunk).unwrap()
+        }
+      } else {
+        self.gen(generator, world, position);
+      }
+    }
+
+    self.0.get(&position).unwrap()
+  }
+
+  pub fn gen(&mut self, generator: &WorldGenerator, world: &World, position: [i64; 2]) {
+    let chunk = world.get_chunk(generator, position);
+    self.0.insert(position, LoadedChunk { chunk, spawned_entity: None });
+  }
+
+  pub fn update_entity(&mut self, position: [i64; 2], ent: Entity) {
+    if let Some(loaded_chunk) = self.0.get_mut(&position) {
+      loaded_chunk.spawned_entity = Some(ent);
+    }
+  }
+
+  pub fn get_mut_if_exists(&mut self, position: [i64; 2]) -> Option<&mut LoadedChunk> {
+    self.0.get_mut(&position)
+  }
+
+  pub fn get_if_exists(&self, position: [i64; 2]) -> Option<&LoadedChunk> {
+    self.0.get(&position)
+  }
+}
 
 pub struct WorldGenPlugin;
 
+#[derive(Component)]
+pub struct LoadChunkCommand(pub [i64; 2]);
+
+#[derive(Component)]
+pub struct UnloadChunkCommand(pub [i64; 2]);
+
 impl WorldGenPlugin {
   pub fn spawn_chunk(
-    commands: &mut Commands,
-    generator: &WorldGenerator,
-    world: &World,
-    chunk_table: &mut LoadedChunkTable,
-    position: [i32; 2],
-  ) {
-    if chunk_table.0.contains_key(&position) {
-      return;
-    }
-
-    let chunk = world.get_chunk(&generator, position);
-
-    let ent = commands
-      .spawn_bundle(SpriteBundle::default())
-      .insert(SpawnedChunk(position))
-      .with_children(|parent| {
-        chunk.iter().enumerate().for_each(|(i, tile)| {
-          let [x, y] = World::get_tile_position_from_index(position, i);
-
-          parent.spawn_bundle(SpriteBundle {
-            sprite: Sprite {
-              color: tile.get_tile_color(),
-              custom_size: Some(Vec2::new(World::TILE_PIXEL_SIZE, World::TILE_PIXEL_SIZE)),
-              ..default()
-            },
-            transform: Transform {
-              translation: Vec2::from([x as f32 * World::TILE_PIXEL_SIZE, y as f32 * World::TILE_PIXEL_SIZE])
-                .extend(0.0),
-              ..default()
-            },
-            ..default()
-          });
-        })
-      })
-      .id();
-
-    let loaded_chunk = LoadedChunk {
-      chunk,
-      spawned_entity: ent,
-    };
-
-    chunk_table.0.insert(position, loaded_chunk);
-  }
-
-  pub fn unload_chunk(commands: &mut Commands, chunk_table: &mut LoadedChunkTable, position: [i32; 2]) {
-    if let Some(chunk) = chunk_table.0.remove(&position) {
-      commands.entity(chunk.spawned_entity).despawn_recursive();
-    }
-  }
-
-  pub fn process_chunk_requests(
     mut commands: Commands,
-    mut events: EventReader<ChunkRequests>,
     generator: Res<WorldGenerator>,
-    mut chunk_table: ResMut<LoadedChunkTable>,
     world: Res<World>,
+    database: Res<DatabaseManager>,
+    mut chunk_table: ResMut<LoadedChunkTable>,
+    query: Query<(Entity, &LoadChunkCommand)>,
   ) {
-    events.iter().for_each(|event| match event {
-      ChunkRequests::Load(x, y) => Self::spawn_chunk(&mut commands, &generator, &world, &mut chunk_table, [*x, *y]),
-      ChunkRequests::Unload(x, y) => Self::unload_chunk(&mut commands, &mut chunk_table, [*x, *y]),
+    query.for_each(|(command_ent, chunk_command)| {
+      let position = chunk_command.0;
+      commands.entity(command_ent).despawn();
+  
+      let loaded_chunk = {
+        let conn = database.try_take().ok();
+        chunk_table.get(conn, &generator, &world, position)
+      };
+
+      if loaded_chunk.spawned_entity.is_some() {
+        return;
+      }
+  
+      let ent = commands
+        .spawn_bundle(SpriteBundle::default())
+        .insert(SpawnedChunk(position))
+        .with_children(|parent| {
+          loaded_chunk.chunk.iter().enumerate().for_each(|(i, tile)| {
+            let [x, y] = World::get_tile_position_from_index(position, i);
+  
+            parent.spawn_bundle(SpriteBundle {
+              sprite: Sprite {
+                color: tile.get_tile_color(),
+                custom_size: Some(Vec2::new(World::TILE_PIXEL_SIZE, World::TILE_PIXEL_SIZE)),
+                ..default()
+              },
+              transform: Transform {
+                translation: Vec2::from([x as f32 * World::TILE_PIXEL_SIZE, y as f32 * World::TILE_PIXEL_SIZE])
+                  .extend(0.0),
+                ..default()
+              },
+              ..default()
+            });
+          })
+        })
+        .id();
+  
+  
+      chunk_table.update_entity(position, ent);
+    });
+  }
+
+  pub fn despawn_chunk(mut commands: Commands, mut chunk_table: ResMut<LoadedChunkTable>, query: Query<(Entity, &UnloadChunkCommand)>) {
+    query.for_each(|(command_ent, chunk_command)| {
+      if let Some(loaded_chunk) = chunk_table.get_mut_if_exists(chunk_command.0) {
+        if loaded_chunk.spawned_entity.is_some() {
+          commands.entity(loaded_chunk.spawned_entity.unwrap()).despawn_recursive();
+          loaded_chunk.spawned_entity = None;
+        }
+      }
+      commands.entity(command_ent).despawn();
     });
   }
 }
@@ -171,9 +249,9 @@ impl Plugin for WorldGenPlugin {
   fn build(&self, app: &mut App) {
     app
       .init_resource::<WorldGenerator>()
-      .add_event::<ChunkRequests>()
       .init_resource::<LoadedChunkTable>()
-      .add_system(Self::process_chunk_requests);
+      .add_system(Self::spawn_chunk)
+      .add_system(Self::despawn_chunk);
   }
 }
 

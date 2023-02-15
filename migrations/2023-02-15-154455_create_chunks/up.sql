@@ -1,0 +1,6 @@
+CREATE TABLE chunks (
+  x BIGINT NOT NULL,
+  y BIGINT NOT NULL,
+  tiles BYTEA NOT NULL,
+  PRIMARY KEY(x, y)
+)

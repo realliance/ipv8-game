@@ -41,10 +41,23 @@ impl World {
     }
   }
 
+  pub fn build_with_seed(seed: i64) -> WorldBuilder {
+    WorldBuilder {
+      origin_time: Utc::now().naive_utc(),
+      seed,
+    }
+  }
+
   pub fn from_db(conn: &mut PgConnection) -> Option<World> {
     use crate::db::schema::worlds::dsl::*;
 
     worlds.first::<WorldObj>(conn).ok().map(|x| x.into())
+  }
+
+  pub fn reset_db(conn: &mut PgConnection) -> Result<(), diesel::result::Error> {
+    use crate::db::schema::worlds::dsl::*;
+
+    diesel::delete(worlds).execute(conn).map(|_| ())
   }
 }
 

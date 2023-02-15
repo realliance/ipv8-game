@@ -2,6 +2,7 @@ use std::fs;
 use std::path::Path;
 
 use bevy::prelude::*;
+use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 /// Game properties file, stored at `properties.toml`
@@ -11,13 +12,17 @@ pub struct GameProperties {
   pub rpc_port: u32,
   /// Tick increment per frame, default is 1
   pub tick_speed: u32,
+  /// Seed of the world
+  pub seed: i64,
 }
 
 impl Default for GameProperties {
   fn default() -> Self {
+    let mut rng = thread_rng();
     Self {
       rpc_port: 1337,
       tick_speed: 1,
+      seed: rng.gen(),
     }
   }
 }

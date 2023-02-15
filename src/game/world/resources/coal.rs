@@ -16,16 +16,16 @@ impl WorldResource for Coal {
     "Coal"
   }
 
-  fn terrain_tile(&self, world: &World, position: [i32; 2]) -> TerrainTile {
+  fn terrain_tile(&self, world: &World, position: [i64; 2]) -> TerrainTile {
     let value = self.get_complex_tile_value(world, position, 1000..10000);
     TerrainTile::Complex(ComplexTerrainTile::Coal(value))
   }
 
-  fn get_tile(&self, world: &World, position: [i32; 2], base_terrain_mod: f64) -> bool {
+  fn get_tile(&self, world: &World, position: [i64; 2], base_terrain_mod: f64) -> bool {
     self.get_value(world, position) - base_terrain_mod > 0.75
   }
 
-  fn get_value(&self, world: &World, [x, y]: [i32; 2]) -> f64 {
+  fn get_value(&self, world: &World, [x, y]: [i64; 2]) -> f64 {
     const NOISE_SCALE: f64 = 0.0333;
     world.noise_gen.get([x as f64 * NOISE_SCALE, y as f64 * NOISE_SCALE])
   }
