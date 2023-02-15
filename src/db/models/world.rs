@@ -1,3 +1,4 @@
+use bevy::prelude::Resource;
 use chrono::{NaiveDateTime, Utc};
 use diesel::{insert_into, PgConnection, RunQueryDsl};
 use noise::Perlin;
@@ -14,7 +15,7 @@ pub struct WorldObj {
   pub seed: i64,
 }
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Resource)]
 pub struct World {
   pub id: i32,
   pub origin_time: NaiveDateTime,

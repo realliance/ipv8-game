@@ -72,13 +72,12 @@ pub struct BuildingDefinition {
 impl BuildingDefinition {
   pub fn spawn(&self, commands: &mut Commands, owner: Uuid, position: IVec2) -> Entity {
     let ent = commands
-      .spawn()
-      .insert(Building(self.name.clone()))
-      .insert(UserOwned(owner))
-      .insert(
+      .spawn((
+        Building(self.name.clone()),
+        UserOwned(owner),
         Transform::from_xyz(position.x as f32, position.y as f32, 0.0)
           .with_scale(Vec2::new(self.size[0] as f32, self.size[1] as f32).extend(0.0)),
-      )
+      ))
       .id();
 
     if let Some(ticked) = &self.ticked {
@@ -105,6 +104,7 @@ pub struct BuildingDefinitionFile {
   pub buildings: Vec<BuildingDefinition>,
 }
 
+#[derive(Resource)]
 pub struct BuildingDefinitionTable(HashMap<String, BuildingDefinition>);
 
 impl Deref for BuildingDefinitionTable {
@@ -312,7 +312,7 @@ mod tests {
     let mut queue = CommandQueue::default();
     let commands = &mut Commands::new(&mut queue, &app.world);
 
-    let ent = commands.spawn().insert(BuildingCooldown(5)).id();
+    let ent = commands.spawn(BuildingCooldown(5)).id();
     queue.apply(&mut app.world);
 
     for x in 0..5 {

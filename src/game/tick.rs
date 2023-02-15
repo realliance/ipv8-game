@@ -95,7 +95,7 @@ mod tests {
       .init_resource::<GameProperties>();
 
     // Build ticking entity
-    let ent = app.world.spawn().insert(Ticked::new(2)).id();
+    let ent = app.world.spawn(Ticked::new(2)).id();
 
     // Tick through the world, observing the entity firing on every other tick.
     for i in 1..100 {
@@ -121,7 +121,7 @@ mod tests {
       });
 
     // Build ticking entity
-    let ent = app.world.spawn().insert(Ticked::new(2)).id();
+    let ent = app.world.spawn(Ticked::new(2)).id();
 
     // Tick through the world, observing the entity firing on every tick.
     for i in 1..100 {
@@ -145,7 +145,7 @@ mod tests {
       });
 
     // Build ticking entity
-    let ent = app.world.spawn().insert(Ticked::every_tick()).id();
+    let ent = app.world.spawn(Ticked::every_tick()).id();
 
     // Tick through the world, observing the entity firing on every tick 25 times.
     for i in 1..100 {

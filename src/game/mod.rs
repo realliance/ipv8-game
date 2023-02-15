@@ -21,13 +21,13 @@ pub mod world;
 pub struct GamePlugins;
 
 impl PluginGroup for GamePlugins {
-  fn build(&mut self, group: &mut PluginGroupBuilder) {
-    group
+  fn build(self) -> PluginGroupBuilder {
+    PluginGroupBuilder::start::<Self>()
       .add(WorldPlugin)
       .add(StagePlugin)
       .add(ResourcePlugin)
       .add(TickPlugin)
       .add(BuildingPlugin)
-      .add(UserPlugin);
+      .add(UserPlugin)
   }
 }

@@ -35,7 +35,7 @@ fn main() {
     info!("Debug Window Enabled");
     app
   } else {
-    app.add_plugins(MinimalPlugins).add_plugin(LogPlugin)
+    app.add_plugins(MinimalPlugins).add_plugin(LogPlugin::default())
   };
 
   info!("Loading plugins...");

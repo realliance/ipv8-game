@@ -4,7 +4,8 @@ use itertools::Itertools;
 use lazy_static::lazy_static;
 
 use super::resources::*;
-use crate::db::{models::{World, Chunk}, DatabaseManager, AcquiredDatabaseConnection};
+use crate::db::models::{Chunk, World};
+use crate::db::{AcquiredDatabaseConnection, DatabaseManager};
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -131,16 +132,28 @@ pub struct LoadedChunk {
   pub spawned_entity: Option<Entity>,
 }
 
-#[derive(Default)]
+#[derive(Default, Resource)]
 pub struct LoadedChunkTable(HashMap<[i64; 2], LoadedChunk>);
 
 impl LoadedChunkTable {
-  pub fn get(&mut self, conn: Option<AcquiredDatabaseConnection>, generator: &WorldGenerator, world: &World, position: [i64; 2]) -> &LoadedChunk {
+  pub fn get(
+    &mut self,
+    conn: Option<AcquiredDatabaseConnection>,
+    generator: &WorldGenerator,
+    world: &World,
+    position: [i64; 2],
+  ) -> &LoadedChunk {
     if !self.0.contains_key(&position) {
       let [chunk_x, chunk_y] = position;
       if let Some(mut conn) = conn {
         if let Ok(chunk) = Chunk::from_xy(&mut *conn, chunk_x, chunk_y) {
-          self.0.insert(position, LoadedChunk { chunk, spawned_entity: None });
+          self.0.insert(
+            position,
+            LoadedChunk {
+              chunk,
+              spawned_entity: None,
+            },
+          );
         } else {
           self.gen(generator, world, position);
           Chunk::save_chunk(&mut *conn, chunk_x, chunk_y, &self.0.get(&position).unwrap().chunk).unwrap()
@@ -155,7 +168,13 @@ impl LoadedChunkTable {
 
   pub fn gen(&mut self, generator: &WorldGenerator, world: &World, position: [i64; 2]) {
     let chunk = world.get_chunk(generator, position);
-    self.0.insert(position, LoadedChunk { chunk, spawned_entity: None });
+    self.0.insert(
+      position,
+      LoadedChunk {
+        chunk,
+        spawned_entity: None,
+      },
+    );
   }
 
   pub fn update_entity(&mut self, position: [i64; 2], ent: Entity) {
@@ -193,7 +212,7 @@ impl WorldGenPlugin {
     query.for_each(|(command_ent, chunk_command)| {
       let position = chunk_command.0;
       commands.entity(command_ent).despawn();
-  
+
       let loaded_chunk = {
         let conn = database.try_take().ok();
         chunk_table.get(conn, &generator, &world, position)
@@ -202,15 +221,15 @@ impl WorldGenPlugin {
       if loaded_chunk.spawned_entity.is_some() {
         return;
       }
-  
+
       let ent = commands
-        .spawn_bundle(SpriteBundle::default())
+        .spawn(SpriteBundle::default())
         .insert(SpawnedChunk(position))
         .with_children(|parent| {
           loaded_chunk.chunk.iter().enumerate().for_each(|(i, tile)| {
             let [x, y] = World::get_tile_position_from_index(position, i);
-  
-            parent.spawn_bundle(SpriteBundle {
+
+            parent.spawn(SpriteBundle {
               sprite: Sprite {
                 color: tile.get_tile_color(),
                 custom_size: Some(Vec2::new(World::TILE_PIXEL_SIZE, World::TILE_PIXEL_SIZE)),
@@ -226,17 +245,22 @@ impl WorldGenPlugin {
           })
         })
         .id();
-  
-  
+
       chunk_table.update_entity(position, ent);
     });
   }
 
-  pub fn despawn_chunk(mut commands: Commands, mut chunk_table: ResMut<LoadedChunkTable>, query: Query<(Entity, &UnloadChunkCommand)>) {
+  pub fn despawn_chunk(
+    mut commands: Commands,
+    mut chunk_table: ResMut<LoadedChunkTable>,
+    query: Query<(Entity, &UnloadChunkCommand)>,
+  ) {
     query.for_each(|(command_ent, chunk_command)| {
       if let Some(loaded_chunk) = chunk_table.get_mut_if_exists(chunk_command.0) {
         if loaded_chunk.spawned_entity.is_some() {
-          commands.entity(loaded_chunk.spawned_entity.unwrap()).despawn_recursive();
+          commands
+            .entity(loaded_chunk.spawned_entity.unwrap())
+            .despawn_recursive();
           loaded_chunk.spawned_entity = None;
         }
       }

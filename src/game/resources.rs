@@ -152,8 +152,7 @@ mod tests {
     // Produce an entity with a ticked cost.
     let building = app
       .world
-      .spawn()
-      .insert_bundle((
+      .spawn((
         Ticked::every_tick(),
         UserOwned(id),
         TickedResourceCost::new(vec![Resource::Credit.cost(5)]),

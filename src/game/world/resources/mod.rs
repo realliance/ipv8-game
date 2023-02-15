@@ -3,6 +3,7 @@ use std::ops::Range;
 use crate::db::models::World;
 
 mod water;
+use bevy::prelude::Resource;
 use rand::rngs::StdRng;
 use rand::{Rng, SeedableRng};
 pub use water::*;
@@ -36,6 +37,7 @@ pub trait WorldResource: Send + Sync {
   fn get_tile(&self, world: &World, position: [i64; 2], base_terrain_modifier: f64) -> bool;
 }
 
+#[derive(Resource)]
 pub struct WorldGenerator {
   base_terrain: Vec<Box<dyn WorldResource>>,
   world_resources: Vec<Box<dyn WorldResource>>,

@@ -6,6 +6,7 @@
 
 use std::ops::{Deref, DerefMut};
 
+use bevy::prelude::Resource;
 use diesel::r2d2::{ConnectionManager, Pool, PooledConnection};
 use diesel::PgConnection;
 use tokio::sync::{Semaphore, SemaphorePermit};
@@ -33,6 +34,7 @@ impl<'a> DerefMut for AcquiredDatabaseConnection<'a> {
 }
 
 /// The Main Database Management Resource.
+#[derive(Resource)]
 pub struct DatabaseManager {
   /// Database Pool.
   pool: Option<Pool<ConnectionManager<PgConnection>>>,

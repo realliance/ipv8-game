@@ -16,7 +16,10 @@ impl Plugin for WorldPlugin {
   fn build(&self, app: &mut App) {
     info!("Building World");
 
-    let properties: &GameProperties = app.world.get_resource().expect("Failed to load Game Properties while loading World. Is the PropertiesPlugin loaded?");
+    let properties: &GameProperties = app
+      .world
+      .get_resource()
+      .expect("Failed to load Game Properties while loading World. Is the PropertiesPlugin loaded?");
 
     let world = {
       let conn = &mut app
@@ -27,13 +30,16 @@ impl Plugin for WorldPlugin {
         .expect("Failed to get database connection from pool.");
 
       World::from_db(conn)
-        .and_then(|x| if x.seed == properties.seed {
-          Some(x)
-        } else {
-          warn!("Seed differed from that in database! Rebuilding world...");
-          World::reset_db(conn).unwrap();
-          None
-        }).unwrap_or(World::build_with_seed(properties.seed).save(conn))
+        .and_then(|x| {
+          if x.seed == properties.seed {
+            Some(x)
+          } else {
+            warn!("Seed differed from that in database! Rebuilding world...");
+            World::reset_db(conn).unwrap();
+            None
+          }
+        })
+        .unwrap_or(World::build_with_seed(properties.seed).save(conn))
     };
 
     app.insert_resource(world).add_plugin(WorldGenPlugin);
@@ -43,15 +49,15 @@ impl Plugin for WorldPlugin {
 #[cfg(test)]
 mod tests {
   use bevy::ecs::system::CommandQueue;
-use bevy::prelude::*;
+  use bevy::prelude::*;
   use chrono::NaiveDateTime;
 
   use super::gen::WorldGenPlugin;
   use super::LoadedChunkTable;
+  use crate::db::models::{World, WorldObj};
   use crate::db::DatabaseManager;
-use crate::db::models::{World, WorldObj};
   use crate::game::stages::StagePlugin;
-  use crate::game::world::{ComplexTerrainTile, StaticTerrainTile, TerrainTile, LoadChunkCommand};
+  use crate::game::world::{ComplexTerrainTile, LoadChunkCommand, StaticTerrainTile, TerrainTile};
 
   #[test]
   fn verify_load_chunk() {
@@ -77,7 +83,7 @@ use crate::db::models::{World, WorldObj};
     assert!(chunk_table.get_if_exists([0, 0]).is_none());
 
     // Ensure load works
-    commands.spawn().insert(LoadChunkCommand([0, 0]));
+    commands.spawn(LoadChunkCommand([0, 0]));
     queue.apply(&mut app.world);
     app.update();
 

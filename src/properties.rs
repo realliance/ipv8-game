@@ -6,7 +6,7 @@ use rand::{thread_rng, Rng};
 use serde::{Deserialize, Serialize};
 
 /// Game properties file, stored at `properties.toml`
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Resource)]
 pub struct GameProperties {
   /// RPC port the server binds to, default is 1337
   pub rpc_port: u32,

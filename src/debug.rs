@@ -2,13 +2,13 @@ use bevy::prelude::*;
 use itertools::Itertools;
 
 use crate::db::models::World;
-use crate::game::world::{LoadedChunkTable, LoadChunkCommand};
+use crate::game::world::{LoadChunkCommand, LoadedChunkTable};
 
 pub struct DebugCameraPlugin;
 
 impl DebugCameraPlugin {
   pub fn setup_camera(mut commands: Commands) {
-    commands.spawn_bundle(Camera2dBundle {
+    commands.spawn(Camera2dBundle {
       transform: Transform {
         translation: Vec3::new(0.0, 0.0, 0.0),
         scale: Vec3::ONE * 5.0,
@@ -68,7 +68,7 @@ impl DebugCameraPlugin {
         ((x - CHUNK_RADIUS)..(x + CHUNK_RADIUS))
           .cartesian_product((y - CHUNK_RADIUS)..(y + CHUNK_RADIUS))
           .for_each(|(x, y)| {
-            commands.spawn().insert(LoadChunkCommand([x, y]));
+            commands.spawn(LoadChunkCommand([x, y]));
           });
       }
     });
