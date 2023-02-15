@@ -3,7 +3,8 @@ use std::ops::Range;
 use crate::db::models::World;
 
 mod water;
-use rand::{rngs::StdRng, SeedableRng, Rng};
+use rand::rngs::StdRng;
+use rand::{Rng, SeedableRng};
 pub use water::*;
 
 mod copper;
@@ -18,7 +19,8 @@ pub use coal::*;
 mod impassable;
 pub use impassable::*;
 
-use super::{gen::TerrainTile, StaticTerrainTile};
+use super::gen::TerrainTile;
+use super::StaticTerrainTile;
 
 pub trait WorldResource: Send + Sync {
   fn get_complex_tile_value(&self, world: &World, position: [i32; 2], range: Range<u32>) -> u32 {
@@ -55,6 +57,7 @@ impl WorldGenerator {
       world_resources: self.world_resources,
     }
   }
+
   pub fn add(mut self, resource: Box<dyn WorldResource>) -> Self {
     self.world_resources.push(resource);
     self.world_resources.sort_by(|a, b| b.priority().cmp(&a.priority()));

@@ -7,14 +7,14 @@ use super::resources::*;
 use crate::db::models::World;
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum StaticTerrainTile {
   Water = 0,
   Stone = 1,
   Impassable = 5,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ComplexTerrainTile {
   Copper(u32),
   Coal(u32),
@@ -22,10 +22,10 @@ pub enum ComplexTerrainTile {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerrainTile {
   Static(StaticTerrainTile),
-  Complex(ComplexTerrainTile)
+  Complex(ComplexTerrainTile),
 }
 
 impl TerrainTile {
@@ -91,8 +91,13 @@ pub enum ChunkRequests {
 #[derive(Component)]
 pub struct SpawnedChunk([i32; 2]);
 
+pub struct LoadedChunk {
+  pub chunk: [TerrainTile; World::CHUNK_SIZE],
+  pub spawned_entity: Entity,
+}
+
 #[derive(Default)]
-pub struct LoadedChunkTable(pub HashMap<[i32; 2], Entity>);
+pub struct LoadedChunkTable(pub HashMap<[i32; 2], LoadedChunk>);
 
 pub struct WorldGenPlugin;
 
@@ -108,40 +113,43 @@ impl WorldGenPlugin {
       return;
     }
 
+    let chunk = world.get_chunk(&generator, position);
+
     let ent = commands
       .spawn_bundle(SpriteBundle::default())
       .insert(SpawnedChunk(position))
       .with_children(|parent| {
-        world
-          .get_chunk(&generator, position)
-          .into_iter()
-          .enumerate()
-          .for_each(|(i, tile)| {
-            let [x, y] = World::get_tile_position_from_index(position, i);
+        chunk.iter().enumerate().for_each(|(i, tile)| {
+          let [x, y] = World::get_tile_position_from_index(position, i);
 
-            parent.spawn_bundle(SpriteBundle {
-              sprite: Sprite {
-                color: tile.get_tile_color(),
-                custom_size: Some(Vec2::new(World::TILE_PIXEL_SIZE, World::TILE_PIXEL_SIZE)),
-                ..default()
-              },
-              transform: Transform {
-                translation: Vec2::from([x as f32 * World::TILE_PIXEL_SIZE, y as f32 * World::TILE_PIXEL_SIZE])
-                  .extend(0.0),
-                ..default()
-              },
+          parent.spawn_bundle(SpriteBundle {
+            sprite: Sprite {
+              color: tile.get_tile_color(),
+              custom_size: Some(Vec2::new(World::TILE_PIXEL_SIZE, World::TILE_PIXEL_SIZE)),
               ..default()
-            });
-          })
+            },
+            transform: Transform {
+              translation: Vec2::from([x as f32 * World::TILE_PIXEL_SIZE, y as f32 * World::TILE_PIXEL_SIZE])
+                .extend(0.0),
+              ..default()
+            },
+            ..default()
+          });
+        })
       })
       .id();
 
-    chunk_table.0.insert(position, ent);
+    let loaded_chunk = LoadedChunk {
+      chunk,
+      spawned_entity: ent,
+    };
+
+    chunk_table.0.insert(position, loaded_chunk);
   }
 
   pub fn unload_chunk(commands: &mut Commands, chunk_table: &mut LoadedChunkTable, position: [i32; 2]) {
     if let Some(chunk) = chunk_table.0.remove(&position) {
-      commands.entity(chunk).despawn_recursive();
+      commands.entity(chunk.spawned_entity).despawn_recursive();
     }
   }
 

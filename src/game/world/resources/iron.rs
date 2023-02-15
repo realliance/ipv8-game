@@ -2,8 +2,8 @@ use noise::NoiseFn;
 
 use super::WorldResource;
 use crate::db::models::World;
-use crate::game::world::ComplexTerrainTile;
 use crate::game::world::gen::TerrainTile;
+use crate::game::world::ComplexTerrainTile;
 
 pub struct Iron;
 
