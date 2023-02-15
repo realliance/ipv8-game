@@ -28,7 +28,7 @@ just
 cargo run -- gen-config
 
 # (In a new terminal) Port forward the db locally
-kubectl -n ipv8-dev port-forward services/psql 5432
+just db-pf
 
 # Start the server
 cargo run
